@@ -1,0 +1,1624 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<title>lec_05_dfa</title>
+</head>
+
+<body>
+
+<div id="page">
+
+<div id="header">
+</div>
+
+<div id="main">
+
+<h1 class="libtitle">Library lec_05_dfa</h1>
+
+<div class="code">
+</div>
+
+<div class="doc">
+<a id="lab1"></a><h1 class="section">Deterministic Finite Automata (DFA)</h1>
+
+<div class="paragraph"> </div>
+
+<a id="lab2"></a><h2 class="section">References</h2>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> https://github.com/coq-community/reglang
+
+<div class="paragraph"> </div>
+
+     Authors: Christian Doczkal and Jan-Oliver Kaiser
+     Distributed under the terms of CeCILL-B.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+ 
+<div class="paragraph"> </div>
+
+<a id="lab3"></a><h2 class="section">Recap</h2>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Last time, we ended our brief introduction to Coq.
+
+</li>
+<li> In particular, we briefly saw the idea of a small-step semantics,
+      which gave us a way to model the behavior of a "machine".
+
+</li>
+<li> Today, we'll look at a very simple machine: a deterministic
+      finite automata (DFA).
+
+</li>
+<li> DFA's can't express all computations, which will pave the way
+      for Turing machines (TMs).
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+ 
+<div class="paragraph"> </div>
+
+<a id="lab4"></a><h2 class="section">Goals for next two lectures</h2>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Today:
+<ul class="doclist">
+<li> Introduce deterministic finite automata (DFA) as an abstract machine.
+
+</li>
+<li> Define the concept of a regular language using DFAs.
+
+</li>
+<li> Show that non-regular languages exists via the Pumping Lemma.
+
+<div class="paragraph"> </div>
+
+
+</li>
+</ul>
+
+</li>
+<li> Next time:
+<ul class="doclist">
+<li> Introduce regular expressions as the "language" corresponding to a DFA.
+
+</li>
+<li> Show the equivalence of regular expressions (REs) and DFAs via
+       non-deterministic finite automata (NDFA).
+
+<div class="paragraph"> </div>
+
+
+</li>
+</ul>
+
+</li>
+<li> Meta-goal: connect paper-pencil intution to the formalism.
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab5"></a><h2 class="section">Ssreflect</h2>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> We will be using the ssreflect package (small scale reflection).
+
+</li>
+<li> This is a Coq library that gives extra notation + tactics for doing
+     mathematics in Coq.
+
+</li>
+<li> ssreflect is used in many serious formal developments (e.g., Feit-Thompson).
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+<span class="id" title="keyword">From</span> <span class="id" title="var">mathcomp</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">all_ssreflect</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Please see: https://ilyasergey.net/util/ssreflect-manual.pdf
+     which contains a good explanation of ssreflect.
+
+</li>
+<li> The long and short:
+<ul class="doclist">
+<li> <span class="inlinecode">=&gt;</span> moves stuff from goal into context
+
+</li>
+<li> <span class="inlinecode">:</span> moves stuff from context back into goal
+
+</li>
+</ul>
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="subnK" class="idref" href="#subnK"><span class="id" title="lemma">subnK</span></a>:<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">forall</span> (<a id="m:1" class="idref" href="#m:1"><span class="id" title="binder">m</span></a> <a id="n:2" class="idref" href="#n:2"><span class="id" title="binder">n</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#n:2"><span class="id" title="variable">n</span></a> <span class="id" title="notation">&lt;=</span> <a class="idref" href="lec_05_dfa.html#m:1"><span class="id" title="variable">m</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#m:1"><span class="id" title="variable">m</span></a> <span class="id" title="notation">-</span> <a class="idref" href="lec_05_dfa.html#n:2"><span class="id" title="variable">n</span></a> <span class="id" title="notation">+</span> <a class="idref" href="lec_05_dfa.html#n:2"><span class="id" title="variable">n</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="lec_05_dfa.html#m:1"><span class="id" title="variable">m</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">move</span> =&gt; <span class="id" title="var">m</span> <span class="id" title="var">n</span>. <span class="comment">(*&nbsp;intros&nbsp;m&nbsp;n.&nbsp;*)</span><br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">move</span>: <span class="id" title="var">m</span>. <span class="comment">(*&nbsp;generalize&nbsp;m.&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="tactic">move</span>: <span class="id" title="var">n</span>. <span class="comment">(*&nbsp;generalize&nbsp;n.&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="tactic">move</span> =&gt; <span class="id" title="var">m</span> <span class="id" title="var">n</span> <span class="id" title="var">le_n_m</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">move</span>: <span class="id" title="var">le_n_m</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="comment">(*&nbsp;move:&nbsp;n&nbsp;{2}n&nbsp;(refl_equal&nbsp;n).&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="tactic">move</span>: (<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#refl_equal"><span class="id" title="abbreviation">refl_equal</span></a> <span class="id" title="var">n</span>).<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">move</span>: {2}<span class="id" title="var">n</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">move</span>: <span class="id" title="var">n</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">move</span> =&gt; <span class="id" title="var">n</span> <span class="id" title="var">n0</span> <span class="id" title="var">eq_n_n0</span> <span class="id" title="var">le_n_m</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="comment">(*&nbsp;elim:&nbsp;n&nbsp;m&nbsp;le_n_m&nbsp;=&gt;&nbsp;<span class="inlinecode">|<span class="id" title="var">n</span></span> <span class="inlinecode"><span class="id" title="var">IHn</span></span>&nbsp;m&nbsp;=&gt;&nbsp;<span class="inlinecode"><span class="id" title="var">_</span></span> <span class="inlinecode">|</span> <span class="inlinecode"><span class="id" title="var">lt_n_m</span></span>.&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="tactic">elim</span>: <span class="id" title="var">n</span> <span class="id" title="var">m</span> <span class="id" title="var">eq_n_n0</span> <span class="id" title="var">le_n_m</span>. <span class="comment">(*&nbsp;"induction&nbsp;n"&nbsp;*)</span><br/>
+&nbsp;&nbsp;- <span class="id" title="tactic">move</span> =&gt; <span class="id" title="var">m</span> <span class="id" title="var">_</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">admit</span>.<br/>
+&nbsp;&nbsp;- <span class="id" title="tactic">move</span> =&gt; <span class="id" title="var">n</span> <span class="id" title="var">IHn</span> <span class="id" title="var">m</span> <span class="id" title="var">lt_n_m</span>.<br/>
+<span class="id" title="keyword">Abort</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab6"></a><h2 class="section">Reglang formalization</h2>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> We are using the Coq formalization reglang:
+     https://github.com/coq-community/reglang
+     in this lecture.
+
+</li>
+<li> Much of the material in this lecture comes from this formalization.
+
+</li>
+<li> First we need to add the following path.
+     You will need to change this for yourself.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="comment">(*&nbsp;Authors:&nbsp;Christian&nbsp;Doczkal&nbsp;and&nbsp;Jan-Oliver&nbsp;Kaiser&nbsp;*)</span><br/>
+<span class="comment">(*&nbsp;Distributed&nbsp;under&nbsp;the&nbsp;terms&nbsp;of&nbsp;CeCILL-B.&nbsp;*)</span><br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">lib_reglang</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Not that important ...
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+<span class="id" title="keyword">Set</span> <span class="id" title="var">Default</span> <span class="id" title="keyword">Proof</span> <span class="id" title="var">Using</span> "Type".<br/>
+<span class="id" title="keyword">Set Implicit Arguments</span>.<br/>
+<span class="id" title="keyword">Unset</span> <span class="id" title="keyword">Printing</span> <span class="id" title="keyword">Implicit</span> <span class="id" title="var">Defensive</span>.<br/>
+<span class="id" title="keyword">Unset</span> <span class="id" title="keyword">Strict</span> <span class="id" title="keyword">Implicit</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab7"></a><h2 class="section">Definition of DFA</h2>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> A DFA is a 5-Tuple (Q, \Sigma, \delta, s f) where
+<ul class="doclist">
+<li> Q is a finite set of DFA states
+
+</li>
+<li> \Sigma is an alphabet
+
+</li>
+<li> \delta: Q x \Sigma -&gt; Q is a transition function
+
+</li>
+<li> s \in Q is a starting state
+
+</li>
+<li> F \in {set Q} is a finite set of final states.
+
+</li>
+</ul>
+
+</li>
+<li> We'll start with a few of pictures of DFAs.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<a id="lab8"></a><h2 class="section">Pictures of DFAs</h2>
+
+
+<div class="paragraph"> </div>
+
+ 
+<div class="paragraph"> </div>
+
+<a id="lab9"></a><h2 class="section">Sections</h2>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> A section is a Coq feature that lets us define universally quantified
+     variables that are available throughout the section.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+<span class="id" title="keyword">Section</span> <a id="FA" class="idref" href="#FA"><span class="id" title="section">FA</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Our first universally quanitifed variable throughout this section
+      is <span class="inlinecode"><span class="id" title="var">char</span></span> which stands for character. A character is a <span class="inlinecode"><span class="id" title="var">finType</span></span>.
+
+</li>
+<li> <span class="inlinecode"><span class="id" title="var">finType</span></span> stands for finite type:
+      https://math-comp.github.io/htmldoc/mathcomp.ssreflect.fintype.html 
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+<span class="id" title="keyword">Locate</span> <span class="id" title="var">finType</span>.<br/>
+<span class="id" title="keyword">Variable</span> <a id="FA.char" class="idref" href="#FA.char"><span class="id" title="variable">char</span></a> : <span class="id" title="abbreviation">finType</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> <span class="inlinecode"><span class="id" title="var">word</span></span> is a list of characters.
+
+</li>
+<li> <span class="inlinecode"><span class="id" title="var">word</span></span>'s are finite.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+<span class="id" title="keyword">Print</span> <span class="id" title="definition">word</span>.<br/>
+<span class="id" title="keyword">Print</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#list"><span class="id" title="inductive">seq</span></a>.<br/>
+<span class="id" title="keyword">Local</span> <span class="id" title="keyword">Notation</span> <a id="word" class="idref" href="#word"><span class="id" title="abbreviation">word</span></a> := (<span class="id" title="definition">word</span> <a class="idref" href="lec_05_dfa.html#FA.char"><span class="id" title="variable">char</span></a>).<br/>
+
+<br/>
+<span class="comment">(*&nbsp;https://math-comp.github.io/htmldoc/mathcomp.ssreflect.finset.html&nbsp;*)</span><br/>
+<span class="id" title="keyword">Check</span> <span class="id" title="notation">{</span><span class="id" title="notation">set</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">bool</span></a><span class="id" title="notation">}</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab10"></a><h2 class="section">Records</h2>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Records are named tuples.
+
+</li>
+<li> We can encode the structure of a DFA as the record below.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+<span class="id" title="keyword">Record</span> <a id="dfa" class="idref" href="#dfa"><span class="id" title="record">dfa</span></a> : <span class="id" title="keyword">Type</span> := {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Note&nbsp;that&nbsp;alphabet&nbsp;char&nbsp;is&nbsp;implicit&nbsp;in&nbsp;this&nbsp;section.&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a id="dfa_state" class="idref" href="#dfa_state"><span class="id" title="projection">dfa_state</span></a> :&gt; <span class="id" title="abbreviation">finType</span>;                       <span class="comment">(*&nbsp;dfa&nbsp;states&nbsp;Q,&nbsp;dfa&nbsp;coerced&nbsp;to&nbsp;dfa_state&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a id="dfa_s" class="idref" href="#dfa_s"><span class="id" title="projection">dfa_s</span></a> : <a class="idref" href="lec_05_dfa.html#dfa_state:5"><span class="id" title="method">dfa_state</span></a>;                          <span class="comment">(*&nbsp;start&nbsp;state&nbsp;s&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a id="dfa_fin" class="idref" href="#dfa_fin"><span class="id" title="projection">dfa_fin</span></a> : <span class="id" title="notation">{</span><span class="id" title="notation">set</span> <a class="idref" href="lec_05_dfa.html#dfa_state:5"><span class="id" title="method">dfa_state</span></a><span class="id" title="notation">}</span>;                  <span class="comment">(*&nbsp;final&nbsp;states&nbsp;F&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;transition&nbsp;function&nbsp;\delta:&nbsp;Q&nbsp;x&nbsp;\Sigma&nbsp;-&gt;&nbsp;Q&nbsp;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;is&nbsp;a&nbsp;small-step&nbsp;semantics!<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a id="dfa_trans" class="idref" href="#dfa_trans"><span class="id" title="projection">dfa_trans</span></a> : <a class="idref" href="lec_05_dfa.html#dfa_state:5"><span class="id" title="method">dfa_state</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_05_dfa.html#FA.char"><span class="id" title="variable">char</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_05_dfa.html#dfa_state:5"><span class="id" title="method">dfa_state</span></a><br/>
+}.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> A DFA is a simple machine.
+
+</li>
+<li> It reads in a word and either <i>accepts</i> the string if it transitions to 
+     a final state or <i>rejects</i> the string if it does not.
+
+</li>
+<li> The set of words that a DFA accepts is called the <i>language</i> of the DFA.
+
+</li>
+<li> We'll define all of this now.
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab11"></a><h2 class="section">DFA Acceptance</h2>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Section</span> <a id="FA.DFA_Acceptance" class="idref" href="#FA.DFA_Acceptance"><span class="id" title="section">DFA_Acceptance</span></a>.<br/>
+&nbsp;&nbsp;<span class="comment">(*&nbsp;Recall&nbsp;this&nbsp;will&nbsp;be&nbsp;coerced&nbsp;to&nbsp;(dfa_state&nbsp;A)&nbsp;when&nbsp;appropriate&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Variable</span> <a id="FA.DFA_Acceptance.A" class="idref" href="#FA.DFA_Acceptance.A"><span class="id" title="variable">A</span></a> : <a class="idref" href="lec_05_dfa.html#dfa"><span class="id" title="record">dfa</span></a>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Implicit</span> <span class="id" title="keyword">Types</span> (<span class="id" title="var">p</span> <span class="id" title="var">q</span>: <a class="idref" href="lec_05_dfa.html#dfa_state"><span class="id" title="projection">dfa_state</span></a> <a class="idref" href="lec_05_dfa.html#FA.DFA_Acceptance.A"><span class="id" title="variable">A</span></a>) (<span class="id" title="var">x</span> <span class="id" title="var">y</span>: <a class="idref" href="lec_05_dfa.html#word"><span class="id" title="abbreviation">word</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Transitive closure with the transition function.
+
+</li>
+<li> Question: how does this compare or contrast with the inductive proposition approach?
+
+</li>
+</ul>
+   
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" title="keyword">Fixpoint</span> <a id="delta" class="idref" href="#delta"><span class="id" title="definition">delta</span></a> (<a id="p:10" class="idref" href="#p:10"><span class="id" title="binder">p</span></a>: <a class="idref" href="lec_05_dfa.html#dfa_state"><span class="id" title="projection">dfa_state</span></a> <a class="idref" href="lec_05_dfa.html#FA.DFA_Acceptance.A"><span class="id" title="variable">A</span></a>) (<a id="x:11" class="idref" href="#x:11"><span class="id" title="binder">x</span></a>: <a class="idref" href="lec_05_dfa.html#word"><span class="id" title="abbreviation">word</span></a>): <a class="idref" href="lec_05_dfa.html#dfa_state"><span class="id" title="projection">dfa_state</span></a> <a class="idref" href="lec_05_dfa.html#FA.DFA_Acceptance.A"><span class="id" title="variable">A</span></a> := <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <a class="idref" href="lec_05_dfa.html#x:11"><span class="id" title="variable">x</span></a> <span class="id" title="keyword">is</span> <span class="id" title="var">a</span> <span class="id" title="notation">::</span> <span class="id" title="var">x'</span> <span class="id" title="keyword">then</span> <a class="idref" href="lec_05_dfa.html#delta:12"><span class="id" title="definition">delta</span></a> (<a class="idref" href="lec_05_dfa.html#dfa_trans"><span class="id" title="projection">dfa_trans</span></a> <a class="idref" href="lec_05_dfa.html#p:10"><span class="id" title="variable">p</span></a> <span class="id" title="var">a</span>) <span class="id" title="var">x'</span> <span class="id" title="keyword">else</span> <a class="idref" href="lec_05_dfa.html#p:10"><span class="id" title="variable">p</span></a>.<br/>
+
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Properties of the transitive closure.
+
+</li>
+</ul>
+   
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" title="keyword">Lemma</span> <a id="delta_cons" class="idref" href="#delta_cons"><span class="id" title="lemma">delta_cons</span></a> (<a id="p:14" class="idref" href="#p:14"><span class="id" title="binder">p</span></a>: <a class="idref" href="lec_05_dfa.html#dfa_state"><span class="id" title="projection">dfa_state</span></a> <a class="idref" href="lec_05_dfa.html#FA.DFA_Acceptance.A"><span class="id" title="variable">A</span></a>) (<a id="a:15" class="idref" href="#a:15"><span class="id" title="binder">a</span></a>: <a class="idref" href="lec_05_dfa.html#FA.char"><span class="id" title="variable">char</span></a>) (<a id="x:16" class="idref" href="#x:16"><span class="id" title="binder">x</span></a>: <a class="idref" href="lec_05_dfa.html#word"><span class="id" title="abbreviation">word</span></a>):<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#delta"><span class="id" title="definition">delta</span></a> (<a class="idref" href="lec_05_dfa.html#dfa_trans"><span class="id" title="projection">dfa_trans</span></a> <a class="idref" href="lec_05_dfa.html#p:14"><span class="id" title="variable">p</span></a> <a class="idref" href="lec_05_dfa.html#a:15"><span class="id" title="variable">a</span></a>) <a class="idref" href="lec_05_dfa.html#x:16"><span class="id" title="variable">x</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="lec_05_dfa.html#delta"><span class="id" title="definition">delta</span></a> <a class="idref" href="lec_05_dfa.html#p:14"><span class="id" title="variable">p</span></a> (<a class="idref" href="lec_05_dfa.html#a:15"><span class="id" title="variable">a</span></a> <span class="id" title="notation">::</span> <a class="idref" href="lec_05_dfa.html#x:16"><span class="id" title="variable">x</span></a>).<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">by</span> []. <span class="comment">(*&nbsp;ssreflect&nbsp;tactic&nbsp;<span class="inlinecode"><span class="id" title="var">done</span></span>&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Aside on ssreflect
+<ul class="doclist">
+<li> //         means  try by <font size=-2>&#9744;</font>.
+
+</li>
+<li> /=         means  simpl
+
+</li>
+<li> //=        means  simpl; try by <font size=-2>&#9744;</font>.
+
+</li>
+</ul>
+   
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Lemma</span> <a id="delta_cat" class="idref" href="#delta_cat"><span class="id" title="lemma">delta_cat</span></a> (<a id="p:17" class="idref" href="#p:17"><span class="id" title="binder">p</span></a>: <a class="idref" href="lec_05_dfa.html#dfa_state"><span class="id" title="projection">dfa_state</span></a> <a class="idref" href="lec_05_dfa.html#FA.DFA_Acceptance.A"><span class="id" title="variable">A</span></a>) (<a id="x:18" class="idref" href="#x:18"><span class="id" title="binder">x</span></a> <a id="y:19" class="idref" href="#y:19"><span class="id" title="binder">y</span></a>: <a class="idref" href="lec_05_dfa.html#word"><span class="id" title="abbreviation">word</span></a>):<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#delta"><span class="id" title="definition">delta</span></a> <a class="idref" href="lec_05_dfa.html#p:17"><span class="id" title="variable">p</span></a> (<a class="idref" href="lec_05_dfa.html#x:18"><span class="id" title="variable">x</span></a> <span class="id" title="notation">++</span> <a class="idref" href="lec_05_dfa.html#y:19"><span class="id" title="variable">y</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="lec_05_dfa.html#delta"><span class="id" title="definition">delta</span></a> (<a class="idref" href="lec_05_dfa.html#delta"><span class="id" title="definition">delta</span></a> <a class="idref" href="lec_05_dfa.html#p:17"><span class="id" title="variable">p</span></a> <a class="idref" href="lec_05_dfa.html#x:18"><span class="id" title="variable">x</span></a>) <a class="idref" href="lec_05_dfa.html#y:19"><span class="id" title="variable">y</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;generalize&nbsp;x.&nbsp;generalize&nbsp;p.&nbsp;induction&nbsp;x.&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">elim</span>: <span class="id" title="var">x</span> <span class="id" title="var">p</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="id" title="tactic">by</span> [].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="id" title="tactic">move</span> =&gt; <span class="id" title="var">a</span> <span class="id" title="var">x</span> <span class="id" title="var">IH</span> <span class="id" title="var">p</span> /=.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">by</span> <span class="id" title="tactic">rewrite</span> <span class="id" title="var">IH</span>. <span class="comment">(*&nbsp;ssreflect&nbsp;for&nbsp;"rewrite&nbsp;IH.&nbsp;by&nbsp;<span class="inlinecode"></span>"&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Lemma</span> <a id="delta_cat'" class="idref" href="#delta_cat'"><span class="id" title="lemma">delta_cat'</span></a> (<a id="p:20" class="idref" href="#p:20"><span class="id" title="binder">p</span></a>: <a class="idref" href="lec_05_dfa.html#dfa_state"><span class="id" title="projection">dfa_state</span></a> <a class="idref" href="lec_05_dfa.html#FA.DFA_Acceptance.A"><span class="id" title="variable">A</span></a>) (<a id="x:21" class="idref" href="#x:21"><span class="id" title="binder">x</span></a> <a id="y:22" class="idref" href="#y:22"><span class="id" title="binder">y</span></a>: <a class="idref" href="lec_05_dfa.html#word"><span class="id" title="abbreviation">word</span></a>):<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#delta"><span class="id" title="definition">delta</span></a> <a class="idref" href="lec_05_dfa.html#p:20"><span class="id" title="variable">p</span></a> (<a class="idref" href="lec_05_dfa.html#x:21"><span class="id" title="variable">x</span></a> <span class="id" title="notation">++</span> <a class="idref" href="lec_05_dfa.html#y:22"><span class="id" title="variable">y</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="lec_05_dfa.html#delta"><span class="id" title="definition">delta</span></a> (<a class="idref" href="lec_05_dfa.html#delta"><span class="id" title="definition">delta</span></a> <a class="idref" href="lec_05_dfa.html#p:20"><span class="id" title="variable">p</span></a> <a class="idref" href="lec_05_dfa.html#x:21"><span class="id" title="variable">x</span></a>) <a class="idref" href="lec_05_dfa.html#y:22"><span class="id" title="variable">y</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;compactifying&nbsp;the&nbsp;previous&nbsp;proof&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">elim</span>: <span class="id" title="var">x</span> <span class="id" title="var">p</span> =&gt; // <span class="id" title="var">a</span> <span class="id" title="var">x</span> <span class="id" title="var">IH</span> <span class="id" title="var">p</span> /=.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">by</span> <span class="id" title="tactic">rewrite</span> <span class="id" title="var">IH</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab12"></a><h3 class="section">DFA Acceptance</h3>
+
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> We are now ready to define what it means for a DFA to accept a word.
+
+</li>
+<li> The idea:
+<ul class="doclist">
+<li> run the DFA to consume the entire word
+
+</li>
+<li> check if the final state of the DFA is an accepting state.
+
+</li>
+</ul>
+
+</li>
+</ul>
+   
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="dfa_accept" class="idref" href="#dfa_accept"><span class="id" title="definition">dfa_accept</span></a> (<a id="p:23" class="idref" href="#p:23"><span class="id" title="binder">p</span></a>: <a class="idref" href="lec_05_dfa.html#dfa_state"><span class="id" title="projection">dfa_state</span></a> <a class="idref" href="lec_05_dfa.html#FA.DFA_Acceptance.A"><span class="id" title="variable">A</span></a>) (<a id="x:24" class="idref" href="#x:24"><span class="id" title="binder">x</span></a>: <a class="idref" href="lec_05_dfa.html#word"><span class="id" title="abbreviation">word</span></a>): <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">bool</span></a> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;dfa_fin&nbsp;A:&nbsp;{set&nbsp;(dfa_state&nbsp;A)}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;\in&nbsp;is&nbsp;"set"&nbsp;membership<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;recall&nbsp;that&nbsp;dfa_fin&nbsp;is&nbsp;a&nbsp;finite&nbsp;set<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#delta"><span class="id" title="definition">delta</span></a> <a class="idref" href="lec_05_dfa.html#p:23"><span class="id" title="variable">p</span></a> <a class="idref" href="lec_05_dfa.html#x:24"><span class="id" title="variable">x</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">\</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">in</span></a> <a class="idref" href="lec_05_dfa.html#dfa_fin"><span class="id" title="projection">dfa_fin</span></a> <a class="idref" href="lec_05_dfa.html#FA.DFA_Acceptance.A"><span class="id" title="variable">A</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+     accept_nil: If there's nothing left to consume, then we better be at a final state.
+   
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" title="keyword">Lemma</span> <a id="accept_nil" class="idref" href="#accept_nil"><span class="id" title="lemma">accept_nil</span></a> (<a id="p:25" class="idref" href="#p:25"><span class="id" title="binder">p</span></a>: <a class="idref" href="lec_05_dfa.html#dfa_state"><span class="id" title="projection">dfa_state</span></a> <a class="idref" href="lec_05_dfa.html#FA.DFA_Acceptance.A"><span class="id" title="variable">A</span></a>):<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#dfa_accept"><span class="id" title="definition">dfa_accept</span></a> <a class="idref" href="lec_05_dfa.html#p:25"><span class="id" title="variable">p</span></a> <span class="id" title="notation">[::]</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">(</span></a><a class="idref" href="lec_05_dfa.html#p:25"><span class="id" title="variable">p</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">\</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">in</span></a> <a class="idref" href="lec_05_dfa.html#dfa_fin"><span class="id" title="projection">dfa_fin</span></a> <a class="idref" href="lec_05_dfa.html#FA.DFA_Acceptance.A"><span class="id" title="variable">A</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">)</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">by</span> [].<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+     accept_cons: If we consume one character, then we should also
+                  accept the DFA after we take that step.
+   
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" title="keyword">Lemma</span> <a id="accept_cons" class="idref" href="#accept_cons"><span class="id" title="lemma">accept_cons</span></a> (<a id="x:26" class="idref" href="#x:26"><span class="id" title="binder">x</span></a>: <a class="idref" href="lec_05_dfa.html#dfa_state"><span class="id" title="projection">dfa_state</span></a> <a class="idref" href="lec_05_dfa.html#FA.DFA_Acceptance.A"><span class="id" title="variable">A</span></a>) (<a id="a:27" class="idref" href="#a:27"><span class="id" title="binder">a</span></a>: <a class="idref" href="lec_05_dfa.html#FA.char"><span class="id" title="variable">char</span></a>) (<a id="w:28" class="idref" href="#w:28"><span class="id" title="binder">w</span></a>: <a class="idref" href="lec_05_dfa.html#word"><span class="id" title="abbreviation">word</span></a>): <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#dfa_accept"><span class="id" title="definition">dfa_accept</span></a> <a class="idref" href="lec_05_dfa.html#x:26"><span class="id" title="variable">x</span></a> (<a class="idref" href="lec_05_dfa.html#a:27"><span class="id" title="variable">a</span></a> <span class="id" title="notation">::</span> <a class="idref" href="lec_05_dfa.html#w:28"><span class="id" title="variable">w</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="lec_05_dfa.html#dfa_accept"><span class="id" title="definition">dfa_accept</span></a> (<a class="idref" href="lec_05_dfa.html#dfa_trans"><span class="id" title="projection">dfa_trans</span></a> <a class="idref" href="lec_05_dfa.html#x:26"><span class="id" title="variable">x</span></a> <a class="idref" href="lec_05_dfa.html#a:27"><span class="id" title="variable">a</span></a>) <a class="idref" href="lec_05_dfa.html#w:28"><span class="id" title="variable">w</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">by</span> [].<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+     Question: can you write down the inference rules for DFA acceptance
+     as an inductive proposition?
+   
+<div class="paragraph"> </div>
+
+<a id="lab13"></a><h3 class="section">Excercise 1:</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Design a DFA with char {0, 1} that only accepts the word "101".
+
+</li>
+</ul>
+   
+<div class="paragraph"> </div>
+
+<a id="lab14"></a><h3 class="section">Exercise 2:</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Design a DFA with char {a, b, c} that accepts any number of a's 
+       followed by "bc".
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+   
+<div class="paragraph"> </div>
+
+<a id="lab15"></a><h3 class="section">DFA Language</h3>
+
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="delta_s" class="idref" href="#delta_s"><span class="id" title="definition">delta_s</span></a> (<a id="w:29" class="idref" href="#w:29"><span class="id" title="binder">w</span></a>: <a class="idref" href="lec_05_dfa.html#word"><span class="id" title="abbreviation">word</span></a>): <a class="idref" href="lec_05_dfa.html#dfa_state"><span class="id" title="projection">dfa_state</span></a> <a class="idref" href="lec_05_dfa.html#FA.DFA_Acceptance.A"><span class="id" title="variable">A</span></a> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#delta"><span class="id" title="definition">delta</span></a> (<a class="idref" href="lec_05_dfa.html#dfa_s"><span class="id" title="projection">dfa_s</span></a> <a class="idref" href="lec_05_dfa.html#FA.DFA_Acceptance.A"><span class="id" title="variable">A</span></a>) <a class="idref" href="lec_05_dfa.html#w:29"><span class="id" title="variable">w</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> The language of a DFA is the language of the starting state.
+
+</li>
+<li> <span class="inlinecode"><span class="id" title="var">simpl_pred</span></span> is a function from word's to bool, i.e.,
+       "decidable" predicate.
+
+</li>
+<li> <span class="inlinecode"><span class="id" title="var">pred</span></span> <span class="inlinecode"><span class="id" title="var">x</span></span> <span class="inlinecode">|</span> <span class="inlinecode"><span class="id" title="var">dfa_accept</span></span> <span class="inlinecode">(<span class="id" title="var">dfa_s</span></span> <span class="inlinecode"><span class="id" title="var">A</span>)</span> <span class="inlinecode"><span class="id" title="var">x</span></span> gives the boolean predicate
+          <span class="inlinecode"><span class="id" title="keyword">fun</span></span> <span class="inlinecode"><span class="id" title="var">x</span></span> <span class="inlinecode">=&gt;</span> <span class="inlinecode"><span class="id" title="var">dfa_accept</span></span> <span class="inlinecode">(<span class="id" title="var">dfa_s</span></span> <span class="inlinecode"><span class="id" title="var">A</span>)</span> <span class="inlinecode"><span class="id" title="var">x</span></span>
+       for a finite set.
+
+</li>
+</ul>
+   
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Locate</span> <span class="id" title="var">pred</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="dfa_lang" class="idref" href="#dfa_lang"><span class="id" title="definition">dfa_lang</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#simpl_pred"><span class="id" title="definition">simpl_pred</span></a> <a class="idref" href="lec_05_dfa.html#word"><span class="id" title="abbreviation">word</span></a> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#27dabc72ea2c2c768f2db80a79f42524"><span class="id" title="notation">[</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#27dabc72ea2c2c768f2db80a79f42524"><span class="id" title="notation">pred</span></a> <a id="x:30" class="idref" href="#x:30"><span class="id" title="binder">x</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#27dabc72ea2c2c768f2db80a79f42524"><span class="id" title="notation">|</span></a> <a class="idref" href="lec_05_dfa.html#dfa_accept"><span class="id" title="definition">dfa_accept</span></a> (<a class="idref" href="lec_05_dfa.html#dfa_s"><span class="id" title="projection">dfa_s</span></a> <a class="idref" href="lec_05_dfa.html#FA.DFA_Acceptance.A"><span class="id" title="variable">A</span></a>) <a class="idref" href="lec_05_dfa.html#x:30"><span class="id" title="variable">x</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#27dabc72ea2c2c768f2db80a79f42524"><span class="id" title="notation">]</span></a>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Lemma</span> <a id="delta_lang" class="idref" href="#delta_lang"><span class="id" title="lemma">delta_lang</span></a> (<a id="x:31" class="idref" href="#x:31"><span class="id" title="binder">x</span></a>: <a class="idref" href="lec_05_dfa.html#word"><span class="id" title="abbreviation">word</span></a>):<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">(</span></a><a class="idref" href="lec_05_dfa.html#delta_s"><span class="id" title="definition">delta_s</span></a> <a class="idref" href="lec_05_dfa.html#x:31"><span class="id" title="variable">x</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">\</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">in</span></a> <a class="idref" href="lec_05_dfa.html#dfa_fin"><span class="id" title="projection">dfa_fin</span></a> <a class="idref" href="lec_05_dfa.html#FA.DFA_Acceptance.A"><span class="id" title="variable">A</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">)</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">(</span></a><a class="idref" href="lec_05_dfa.html#x:31"><span class="id" title="variable">x</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">\</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">in</span></a> <a class="idref" href="lec_05_dfa.html#dfa_lang"><span class="id" title="definition">dfa_lang</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">)</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">by</span> [].<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="accE" class="idref" href="#accE"><span class="id" title="definition">accE</span></a> := <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">(</span></a><a class="idref" href="lec_05_dfa.html#accept_nil"><span class="id" title="lemma">accept_nil</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a> <a class="idref" href="lec_05_dfa.html#accept_cons"><span class="id" title="lemma">accept_cons</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">)</span></a>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Check</span> <a class="idref" href="lec_05_dfa.html#accE"><span class="id" title="definition">accE</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="lec_05_dfa.html#FA.DFA_Acceptance"><span class="id" title="section">DFA_Acceptance</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab16"></a><h2 class="section">Regular Languages</h2>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> A regular language is defined to be the set of Languages that
+     are accepted by DFA's.
+
+</li>
+<li> We will see next time that this is equivalent to *regular expressions*.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+ 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="regular" class="idref" href="#regular"><span class="id" title="definition">regular</span></a> (<a id="L:32" class="idref" href="#L:32"><span class="id" title="binder">L</span></a> : <span class="id" title="definition">lang</span> <a class="idref" href="lec_05_dfa.html#FA.char"><span class="id" title="variable">char</span></a>): <span class="id" title="keyword">Type</span> :=<br/>
+&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Specif.html#6556914db359db999889decec6a4a562"><span class="id" title="notation">{</span></a> <a id="A:33" class="idref" href="#A:33"><span class="id" title="binder">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Specif.html#6556914db359db999889decec6a4a562"><span class="id" title="notation">:</span></a> <a class="idref" href="lec_05_dfa.html#dfa"><span class="id" title="record">dfa</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Specif.html#6556914db359db999889decec6a4a562"><span class="id" title="notation">|</span></a> <span class="id" title="keyword">forall</span> <a id="x:34" class="idref" href="#x:34"><span class="id" title="binder">x</span></a>, <a class="idref" href="lec_05_dfa.html#L:32"><span class="id" title="variable">L</span></a> <a class="idref" href="lec_05_dfa.html#x:34"><span class="id" title="variable">x</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'&lt;-&gt;'_x"><span class="id" title="notation">&lt;-&gt;</span></a> <a class="idref" href="lec_05_dfa.html#x:34"><span class="id" title="variable">x</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">\</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">in</span></a> <a class="idref" href="lec_05_dfa.html#dfa_lang"><span class="id" title="definition">dfa_lang</span></a> <a class="idref" href="lec_05_dfa.html#A:33"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Specif.html#6556914db359db999889decec6a4a562"><span class="id" title="notation">}</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> We can convert the <span class="inlinecode"><span class="id" title="keyword">Type</span></span> to <span class="inlinecode"><span class="id" title="keyword">Prop</span></span>.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="regular_prop" class="idref" href="#regular_prop"><span class="id" title="definition">regular_prop</span></a> (<a id="L:35" class="idref" href="#L:35"><span class="id" title="binder">L</span></a>: <span class="id" title="definition">lang</span> <a class="idref" href="lec_05_dfa.html#FA.char"><span class="id" title="variable">char</span></a>): <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#inhabited"><span class="id" title="inductive">inhabited</span></a> (<a class="idref" href="lec_05_dfa.html#regular"><span class="id" title="definition">regular</span></a> <a class="idref" href="lec_05_dfa.html#L:35"><span class="id" title="variable">L</span></a>).<br/>
+
+<br/>
+<span class="id" title="keyword">Locate</span> "=p".<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Regular languages satisfy extensionality.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+<span class="id" title="keyword">Lemma</span> <a id="regular_ext" class="idref" href="#regular_ext"><span class="id" title="lemma">regular_ext</span></a> (<a id="L1:36" class="idref" href="#L1:36"><span class="id" title="binder">L1</span></a> <a id="L2:37" class="idref" href="#L2:37"><span class="id" title="binder">L2</span></a>: <span class="id" title="definition">lang</span> <a class="idref" href="lec_05_dfa.html#FA.char"><span class="id" title="variable">char</span></a>):<br/>
+&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#regular"><span class="id" title="definition">regular</span></a> <a class="idref" href="lec_05_dfa.html#L2:37"><span class="id" title="variable">L2</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#L1:36"><span class="id" title="variable">L1</span></a> <span class="id" title="notation">=</span><span class="id" title="notation">p</span> <a class="idref" href="lec_05_dfa.html#L2:37"><span class="id" title="variable">L2</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#regular"><span class="id" title="definition">regular</span></a> <a class="idref" href="lec_05_dfa.html#L1:36"><span class="id" title="variable">L1</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">elim</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">move</span> =&gt; <span class="id" title="var">A</span> <span class="id" title="var">HA</span> <span class="id" title="var">B</span>. <span class="comment">(*&nbsp;intros&nbsp;A&nbsp;HA&nbsp;B&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> /<a class="idref" href="lec_05_dfa.html#regular"><span class="id" title="definition">regular</span></a>. <span class="comment">(*&nbsp;unfold&nbsp;regular&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="tactic">exists</span> <span class="id" title="var">A</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">move</span> =&gt; <span class="id" title="var">w</span>. <span class="comment">(*&nbsp;intros&nbsp;w&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="tactic">by</span> <span class="id" title="tactic">rewrite</span> <span class="id" title="var">B</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab17"></a><h3 class="section">Empty automaton</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> An empty dfa has 1 state tt and no accepting states.
+
+</li>
+</ul>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Print</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#tt"><span class="id" title="constructor">tt</span></a>.<br/>
+<span class="id" title="keyword">Definition</span> <a id="dfa_void" class="idref" href="#dfa_void"><span class="id" title="definition">dfa_void</span></a> :=<br/>
+&nbsp;&nbsp;{|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#dfa_s"><span class="id" title="projection">dfa_s</span></a> := <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#tt"><span class="id" title="constructor">tt</span></a>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#dfa_trans"><span class="id" title="projection">dfa_trans</span></a> <a id="q:38" class="idref" href="#q:38"><span class="id" title="binder">q</span></a> <a id="a:39" class="idref" href="#a:39"><span class="id" title="binder">a</span></a> := <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#tt"><span class="id" title="constructor">tt</span></a>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#dfa_fin"><span class="id" title="projection">dfa_fin</span></a> := <span class="id" title="definition">set0</span><br/>
+&nbsp;&nbsp;|}.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="dfa_void_correct" class="idref" href="#dfa_void_correct"><span class="id" title="lemma">dfa_void_correct</span></a> (<a id="x:40" class="idref" href="#x:40"><span class="id" title="binder">x</span></a>: <a class="idref" href="lec_05_dfa.html#word"><span class="id" title="abbreviation">word</span></a>) :<br/>
+&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#x:40"><span class="id" title="variable">x</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">\</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">in</span></a> <a class="idref" href="lec_05_dfa.html#dfa_lang"><span class="id" title="definition">dfa_lang</span></a> <a class="idref" href="lec_05_dfa.html#dfa_void"><span class="id" title="definition">dfa_void</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#false"><span class="id" title="constructor">false</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> -<a class="idref" href="lec_05_dfa.html#delta_lang"><span class="id" title="lemma">delta_lang</span></a> /=. <span class="comment">(*&nbsp;rewrite&nbsp;&lt;-&nbsp;delta_lang&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Check</span> <span class="id" title="definition">inE</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="definition">inE</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">by</span> [].<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab18"></a><h3 class="section">Empty language is regular</h3>
+
+</div>
+<div class="code">
+<span class="id" title="keyword">Lemma</span> <a id="regular0" class="idref" href="#regular0"><span class="id" title="lemma">regular0</span></a>:<br/>
+&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#regular"><span class="id" title="definition">regular</span></a> (<span class="id" title="keyword">fun</span> <span class="id" title="var">_</span> : <a class="idref" href="lec_05_dfa.html#word"><span class="id" title="abbreviation">word</span></a> =&gt; <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#False"><span class="id" title="inductive">False</span></a>).<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">exists</span> (<a class="idref" href="lec_05_dfa.html#dfa_void"><span class="id" title="definition">dfa_void</span></a>) =&gt; <span class="id" title="var">x</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">by</span> <span class="id" title="tactic">rewrite</span> <a class="idref" href="lec_05_dfa.html#dfa_void_correct"><span class="id" title="lemma">dfa_void_correct</span></a>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab19"></a><h3 class="section">Operations on DFAs</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Build complement automata.
+
+</li>
+<li> Build boolean combinations of DFA (&amp;&amp; and ||).
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab20"></a><h3 class="section">Exercises</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Design a DFA that accepts an even number of 1's.
+
+</li>
+<li> Design a DFA that accepts an odd number of 0's.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Section</span> <a id="FA.DFAOps" class="idref" href="#FA.DFAOps"><span class="id" title="section">DFAOps</span></a>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Variable</span> <a id="FA.DFAOps.op" class="idref" href="#FA.DFAOps.op"><span class="id" title="variable">op</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">bool</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">bool</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">bool</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Variable</span> <a id="FA.DFAOps.A1" class="idref" href="#FA.DFAOps.A1"><span class="id" title="variable">A1</span></a> <a id="FA.DFAOps.A2" class="idref" href="#FA.DFAOps.A2"><span class="id" title="variable">A2</span></a> : <a class="idref" href="lec_05_dfa.html#dfa"><span class="id" title="record">dfa</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab21"></a><h3 class="section">Complement automaton</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> How will we build a complement automaton?
+
+</li>
+<li> That is, we need to build an automaton that accepts the complement of the
+       words accepted by the original language.  
+
+</li>
+</ul>
+   
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" title="keyword">Locate</span> "~:".<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="dfa_compl" class="idref" href="#dfa_compl"><span class="id" title="definition">dfa_compl</span></a>: <a class="idref" href="lec_05_dfa.html#dfa"><span class="id" title="record">dfa</span></a> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#dfa_s"><span class="id" title="projection">dfa_s</span></a> := <a class="idref" href="lec_05_dfa.html#dfa_s"><span class="id" title="projection">dfa_s</span></a> <a class="idref" href="lec_05_dfa.html#FA.DFAOps.A1"><span class="id" title="variable">A1</span></a>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#dfa_fin"><span class="id" title="projection">dfa_fin</span></a> := <span class="id" title="notation">~:</span> <span class="id" title="notation">(</span><a class="idref" href="lec_05_dfa.html#dfa_fin"><span class="id" title="projection">dfa_fin</span></a> <a class="idref" href="lec_05_dfa.html#FA.DFAOps.A1"><span class="id" title="variable">A1</span></a><span class="id" title="notation">)</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#dfa_trans"><span class="id" title="projection">dfa_trans</span></a> := (@<a class="idref" href="lec_05_dfa.html#dfa_trans"><span class="id" title="projection">dfa_trans</span></a> <a class="idref" href="lec_05_dfa.html#FA.DFAOps.A1"><span class="id" title="variable">A1</span></a>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;|}.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab22"></a><h3 class="section">Complement automaton is correct</h3>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" title="keyword">Lemma</span> <a id="dfa_compl_correct" class="idref" href="#dfa_compl_correct"><span class="id" title="lemma">dfa_compl_correct</span></a> (<a id="w:44" class="idref" href="#w:44"><span class="id" title="binder">w</span></a>: <a class="idref" href="lec_05_dfa.html#word"><span class="id" title="abbreviation">word</span></a>):<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#w:44"><span class="id" title="variable">w</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">\</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">in</span></a> <a class="idref" href="lec_05_dfa.html#dfa_lang"><span class="id" title="definition">dfa_lang</span></a> <a class="idref" href="lec_05_dfa.html#dfa_compl"><span class="id" title="definition">dfa_compl</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">(</span></a><a class="idref" href="lec_05_dfa.html#w:44"><span class="id" title="variable">w</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#c1ad6bcc76a6221225111f87bc3b0c3d"><span class="id" title="notation">\</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#c1ad6bcc76a6221225111f87bc3b0c3d"><span class="id" title="notation">notin</span></a> <a class="idref" href="lec_05_dfa.html#dfa_lang"><span class="id" title="definition">dfa_lang</span></a> <a class="idref" href="lec_05_dfa.html#FA.DFAOps.A1"><span class="id" title="variable">A1</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">)</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> /<a class="idref" href="lec_05_dfa.html#dfa_lang"><span class="id" title="definition">dfa_lang</span></a>. <span class="comment">(*&nbsp;unfold&nbsp;dfa_lang&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> !<span class="id" title="definition">inE</span>. <span class="comment">(*&nbsp;repeat&nbsp;(rewrite&nbsp;inE)&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> /<a class="idref" href="lec_05_dfa.html#dfa_compl"><span class="id" title="definition">dfa_compl</span></a>. <span class="comment">(*&nbsp;unfold&nbsp;dfa_compl&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> /=. <span class="comment">(*&nbsp;simpl&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> /<a class="idref" href="lec_05_dfa.html#dfa_accept"><span class="id" title="definition">dfa_accept</span></a>. <span class="comment">(*&nbsp;unfold&nbsp;dfa_accept&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> !<span class="id" title="definition">inE</span>. <span class="comment">(*&nbsp;repeat&nbsp;(rewrite&nbsp;inE)&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">by</span> []. <span class="comment">(*&nbsp;trivial&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab23"></a><h3 class="section">BinOp Automaton</h3>
+
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Determine the final states of the automaton by op (dfa_fin A1) (dfa_fin A2).
+
+</li>
+</ul>
+   
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="dfa_op" class="idref" href="#dfa_op"><span class="id" title="definition">dfa_op</span></a>: <a class="idref" href="lec_05_dfa.html#dfa"><span class="id" title="record">dfa</span></a> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#dfa_s"><span class="id" title="projection">dfa_s</span></a> := <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">(</span></a><a class="idref" href="lec_05_dfa.html#dfa_s"><span class="id" title="projection">dfa_s</span></a> <a class="idref" href="lec_05_dfa.html#FA.DFAOps.A1"><span class="id" title="variable">A1</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a> <a class="idref" href="lec_05_dfa.html#dfa_s"><span class="id" title="projection">dfa_s</span></a> <a class="idref" href="lec_05_dfa.html#FA.DFAOps.A2"><span class="id" title="variable">A2</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">)</span></a>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#dfa_fin"><span class="id" title="projection">dfa_fin</span></a> := <span class="id" title="notation">[</span><span class="id" title="notation">set</span> <a id="q:47" class="idref" href="#q:47"><span class="id" title="binder">q</span></a> <span class="id" title="notation">|</span> <a class="idref" href="lec_05_dfa.html#FA.DFAOps.op"><span class="id" title="variable">op</span></a> (<a class="idref" href="lec_05_dfa.html#q:47"><span class="id" title="variable">q</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrfun.html#::pair_scope:x_'.1'"><span class="id" title="notation">.1</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">\</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">in</span></a> <a class="idref" href="lec_05_dfa.html#dfa_fin"><span class="id" title="projection">dfa_fin</span></a> <a class="idref" href="lec_05_dfa.html#FA.DFAOps.A1"><span class="id" title="variable">A1</span></a>) (<a class="idref" href="lec_05_dfa.html#q:47"><span class="id" title="variable">q</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrfun.html#::pair_scope:x_'.2'"><span class="id" title="notation">.2</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">\</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">in</span></a> <a class="idref" href="lec_05_dfa.html#dfa_fin"><span class="id" title="projection">dfa_fin</span></a> <a class="idref" href="lec_05_dfa.html#FA.DFAOps.A2"><span class="id" title="variable">A2</span></a>)<span class="id" title="notation">]</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#dfa_trans"><span class="id" title="projection">dfa_trans</span></a> := <span class="id" title="keyword">fun</span> (<a id="x:45" class="idref" href="#x:45"><span class="id" title="binder">x</span></a>: <a class="idref" href="lec_05_dfa.html#dfa_state"><span class="id" title="projection">dfa_state</span></a> <a class="idref" href="lec_05_dfa.html#FA.DFAOps.A1"><span class="id" title="variable">A1</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">*</span></a> <a class="idref" href="lec_05_dfa.html#dfa_state"><span class="id" title="projection">dfa_state</span></a> <a class="idref" href="lec_05_dfa.html#FA.DFAOps.A2"><span class="id" title="variable">A2</span></a>) (<a id="a:46" class="idref" href="#a:46"><span class="id" title="binder">a</span></a>: <a class="idref" href="lec_05_dfa.html#FA.char"><span class="id" title="variable">char</span></a>) =&gt; <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">(</span></a><a class="idref" href="lec_05_dfa.html#dfa_trans"><span class="id" title="projection">dfa_trans</span></a> <a class="idref" href="lec_05_dfa.html#x:45"><span class="id" title="variable">x</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrfun.html#::pair_scope:x_'.1'"><span class="id" title="notation">.1</span></a> <a class="idref" href="lec_05_dfa.html#a:46"><span class="id" title="variable">a</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a> <a class="idref" href="lec_05_dfa.html#dfa_trans"><span class="id" title="projection">dfa_trans</span></a> <a class="idref" href="lec_05_dfa.html#x:45"><span class="id" title="variable">x</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrfun.html#::pair_scope:x_'.2'"><span class="id" title="notation">.2</span></a> <a class="idref" href="lec_05_dfa.html#a:46"><span class="id" title="variable">a</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">)</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;|}.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab24"></a><h3 class="section">BinOp Automaton correct</h3>
+
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Lemma</span> <a id="dfa_op_correct" class="idref" href="#dfa_op_correct"><span class="id" title="lemma">dfa_op_correct</span></a> (<a id="w:48" class="idref" href="#w:48"><span class="id" title="binder">w</span></a>: <a class="idref" href="lec_05_dfa.html#word"><span class="id" title="abbreviation">word</span></a>):<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#w:48"><span class="id" title="variable">w</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">\</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">in</span></a> <a class="idref" href="lec_05_dfa.html#dfa_lang"><span class="id" title="definition">dfa_lang</span></a> <a class="idref" href="lec_05_dfa.html#dfa_op"><span class="id" title="definition">dfa_op</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="lec_05_dfa.html#FA.DFAOps.op"><span class="id" title="variable">op</span></a> (<a class="idref" href="lec_05_dfa.html#w:48"><span class="id" title="variable">w</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">\</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">in</span></a> <a class="idref" href="lec_05_dfa.html#dfa_lang"><span class="id" title="definition">dfa_lang</span></a> <a class="idref" href="lec_05_dfa.html#FA.DFAOps.A1"><span class="id" title="variable">A1</span></a>) (<a class="idref" href="lec_05_dfa.html#w:48"><span class="id" title="variable">w</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">\</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">in</span></a> <a class="idref" href="lec_05_dfa.html#dfa_lang"><span class="id" title="definition">dfa_lang</span></a> <a class="idref" href="lec_05_dfa.html#FA.DFAOps.A2"><span class="id" title="variable">A2</span></a>).<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> !<span class="id" title="definition">inE</span>. <span class="comment">(*&nbsp;rewrite&nbsp;inE&nbsp;as&nbsp;many&nbsp;times&nbsp;as&nbsp;we&nbsp;can&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> {2}/<a class="idref" href="lec_05_dfa.html#dfa_op"><span class="id" title="definition">dfa_op</span></a> /=. <span class="comment">(*&nbsp;unfold&nbsp;2nd&nbsp;occurrence&nbsp;of&nbsp;dfa_op&nbsp;and&nbsp;simplify&nbsp;*)</span><br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;elim:&nbsp;w&nbsp;(dfa_s&nbsp;A1)&nbsp;(dfa_s&nbsp;A2)&nbsp;=&gt;&nbsp;<span class="inlinecode">|</span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode"><span class="id" title="var">w</span></span> <span class="inlinecode"><span class="id" title="var">IHw</span></span>&nbsp;x&nbsp;y;&nbsp;by&nbsp;rewrite&nbsp;!accE&nbsp;?inE&nbsp;/=.&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">elim</span>: <span class="id" title="var">w</span> (<a class="idref" href="lec_05_dfa.html#dfa_s"><span class="id" title="projection">dfa_s</span></a> <a class="idref" href="lec_05_dfa.html#FA.DFAOps.A1"><span class="id" title="variable">A1</span></a>) (<a class="idref" href="lec_05_dfa.html#dfa_s"><span class="id" title="projection">dfa_s</span></a> <a class="idref" href="lec_05_dfa.html#FA.DFAOps.A2"><span class="id" title="variable">A2</span></a>).<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Locate</span> <span class="id" title="var">accE</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Check</span> <a class="idref" href="lec_05_dfa.html#accE"><span class="id" title="definition">accE</span></a>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="id" title="tactic">move</span> =&gt; <span class="id" title="var">x</span> <span class="id" title="var">y</span> /=.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> !<a class="idref" href="lec_05_dfa.html#accE"><span class="id" title="definition">accE</span></a> <span class="id" title="definition">inE</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">by</span> [].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="id" title="tactic">move</span> =&gt; <span class="id" title="var">a</span> <span class="id" title="var">w</span> <span class="id" title="var">IHw</span> <span class="id" title="var">x</span> <span class="id" title="var">y</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> !<a class="idref" href="lec_05_dfa.html#accE"><span class="id" title="definition">accE</span></a> /=.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">by</span> [].<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="lec_05_dfa.html#FA.DFAOps"><span class="id" title="section">DFAOps</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab25"></a><h3 class="section">Intersection of regular languages is regular</h3>
+
+</div>
+<div class="code">
+<span class="id" title="keyword">Lemma</span> <a id="regular_inter" class="idref" href="#regular_inter"><span class="id" title="lemma">regular_inter</span></a> (<a id="L1:49" class="idref" href="#L1:49"><span class="id" title="binder">L1</span></a> <a id="L2:50" class="idref" href="#L2:50"><span class="id" title="binder">L2</span></a> : <span class="id" title="definition">lang</span> <a class="idref" href="lec_05_dfa.html#FA.char"><span class="id" title="variable">char</span></a>):<br/>
+&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#regular"><span class="id" title="definition">regular</span></a> <a class="idref" href="lec_05_dfa.html#L1:49"><span class="id" title="variable">L1</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#regular"><span class="id" title="definition">regular</span></a> <a class="idref" href="lec_05_dfa.html#L2:50"><span class="id" title="variable">L2</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#regular"><span class="id" title="definition">regular</span></a> (<span class="id" title="keyword">fun</span> <a id="x:51" class="idref" href="#x:51"><span class="id" title="binder">x</span></a> =&gt; <a class="idref" href="lec_05_dfa.html#L1:49"><span class="id" title="variable">L1</span></a> <a class="idref" href="lec_05_dfa.html#x:51"><span class="id" title="variable">x</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#ba2b0e492d2b4675a0acf3ea92aabadd"><span class="id" title="notation">/\</span></a> <a class="idref" href="lec_05_dfa.html#L2:50"><span class="id" title="variable">L2</span></a> <a class="idref" href="lec_05_dfa.html#x:51"><span class="id" title="variable">x</span></a>).<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">move</span> =&gt; [<span class="id" title="var">A1</span> <span class="id" title="var">acc_L1</span>].<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">move</span> =&gt; [<span class="id" title="var">A2</span> <span class="id" title="var">acc_L2</span>].<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> /<a class="idref" href="lec_05_dfa.html#regular"><span class="id" title="definition">regular</span></a>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="comment">(*&nbsp;Interesting&nbsp;step:&nbsp;what&nbsp;are&nbsp;we&nbsp;doing&nbsp;here?&nbsp;*)</span><br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">exists</span> (<a class="idref" href="lec_05_dfa.html#dfa_op"><span class="id" title="definition">dfa_op</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#andb"><span class="id" title="definition">andb</span></a> <span class="id" title="var">A1</span> <span class="id" title="var">A2</span>) =&gt; <span class="id" title="var">x</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="comment">(*&nbsp;Using&nbsp;reflection&nbsp;here!&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Locate</span> <span class="id" title="var">rwP</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Check</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#rwP"><span class="id" title="lemma">rwP</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Locate</span> <span class="id" title="var">andP</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Check</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#rwP"><span class="id" title="lemma">rwP</span></a>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">by</span> <span class="id" title="tactic">rewrite</span> <a class="idref" href="lec_05_dfa.html#dfa_op_correct"><span class="id" title="lemma">dfa_op_correct</span></a> <span class="id" title="var">acc_L1</span> <span class="id" title="var">acc_L2</span> (<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#rwP"><span class="id" title="lemma">rwP</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#andP"><span class="id" title="lemma">andP</span></a>).<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab26"></a><h3 class="section">Union of regular languages is regular</h3>
+
+</div>
+<div class="code">
+<span class="id" title="keyword">Lemma</span> <a id="regularU" class="idref" href="#regularU"><span class="id" title="lemma">regularU</span></a> (<a id="L1:52" class="idref" href="#L1:52"><span class="id" title="binder">L1</span></a> <a id="L2:53" class="idref" href="#L2:53"><span class="id" title="binder">L2</span></a> : <span class="id" title="definition">lang</span> <a class="idref" href="lec_05_dfa.html#FA.char"><span class="id" title="variable">char</span></a>) :<br/>
+&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#regular"><span class="id" title="definition">regular</span></a> <a class="idref" href="lec_05_dfa.html#L1:52"><span class="id" title="variable">L1</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#regular"><span class="id" title="definition">regular</span></a> <a class="idref" href="lec_05_dfa.html#L2:53"><span class="id" title="variable">L2</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#regular"><span class="id" title="definition">regular</span></a> (<span class="id" title="keyword">fun</span> <a id="x:54" class="idref" href="#x:54"><span class="id" title="binder">x</span></a> =&gt; <a class="idref" href="lec_05_dfa.html#L1:52"><span class="id" title="variable">L1</span></a> <a class="idref" href="lec_05_dfa.html#x:54"><span class="id" title="variable">x</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#f031fe1957c4a4a8e217aa46af2b4e25"><span class="id" title="notation">\/</span></a> <a class="idref" href="lec_05_dfa.html#L2:53"><span class="id" title="variable">L2</span></a> <a class="idref" href="lec_05_dfa.html#x:54"><span class="id" title="variable">x</span></a>).<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">move</span> =&gt; [<span class="id" title="var">A1</span> <span class="id" title="var">acc_L1</span>].<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">move</span> =&gt; [<span class="id" title="var">A2</span> <span class="id" title="var">acc_L2</span>].<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> /<a class="idref" href="lec_05_dfa.html#regular"><span class="id" title="definition">regular</span></a>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="comment">(*&nbsp;Intereseting&nbsp;step&nbsp;here:&nbsp;witness&nbsp;union&nbsp;with&nbsp;orb&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="tactic">exists</span> (<a class="idref" href="lec_05_dfa.html#dfa_op"><span class="id" title="definition">dfa_op</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#orb"><span class="id" title="definition">orb</span></a> <span class="id" title="var">A1</span> <span class="id" title="var">A2</span>) =&gt; <span class="id" title="var">x</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">by</span> <span class="id" title="tactic">rewrite</span> <a class="idref" href="lec_05_dfa.html#dfa_op_correct"><span class="id" title="lemma">dfa_op_correct</span></a> <span class="id" title="var">acc_L1</span> <span class="id" title="var">acc_L2</span> (<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#rwP"><span class="id" title="lemma">rwP</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#orP"><span class="id" title="lemma">orP</span></a>).<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> It may be unsatisfactory to see these proofs go through especially if we want a
+     concrete DFA machine that witnesses that thes properties hold.
+
+</li>
+<li> Let's spend some time building such DFAs.
+
+</li>
+<li> Hint: the proofs should give you a hint as to what to do!
+
+</li>
+<li> Exercises
+<ul class="doclist">
+<li> Design a DFA that accepts an even number of 1's and an odd number of 0's.
+
+</li>
+<li> Design a DFA that accepts an even number of 1's or an odd number of 0's.
+
+</li>
+<li> Design a DFA that accepts an even number of 1's or an odd number of 0's, but not both.
+
+</li>
+</ul>
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab27"></a><h3 class="section">Countable union of regular languages is regular.</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> <span class="inlinecode"><span class="id" title="var">exists2</span></span> <span class="inlinecode"><span class="id" title="var">x</span>,</span> <span class="inlinecode"><span class="id" title="var">P</span></span> <span class="inlinecode"><span class="id" title="var">x</span></span> <span class="inlinecode">&amp;</span> <span class="inlinecode"><span class="id" title="var">Q</span></span> <span class="inlinecode"><span class="id" title="var">x</span></span> says that there is an x that satisfies P and Q.
+
+</li>
+</ul>
+
+</div>
+<div class="code">
+<span class="id" title="keyword">Lemma</span> <a id="regular_bigU" class="idref" href="#regular_bigU"><span class="id" title="lemma">regular_bigU</span></a> (<a id="T:55" class="idref" href="#T:55"><span class="id" title="binder">T</span></a>: <span class="id" title="abbreviation">eqType</span>) (<a id="L:56" class="idref" href="#L:56"><span class="id" title="binder">L</span></a>: <a class="idref" href="lec_05_dfa.html#T:55"><span class="id" title="variable">T</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="definition">lang</span> <a class="idref" href="lec_05_dfa.html#FA.char"><span class="id" title="variable">char</span></a>) (<a id="s:57" class="idref" href="#s:57"><span class="id" title="binder">s</span></a> : <span class="id" title="abbreviation">seq</span> <a class="idref" href="lec_05_dfa.html#T:55"><span class="id" title="variable">T</span></a>): <br/>
+&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">(</span></a><span class="id" title="keyword">forall</span> (<a id="a:61" class="idref" href="#a:61"><span class="id" title="binder">a</span></a>: <a class="idref" href="lec_05_dfa.html#T:55"><span class="id" title="variable">T</span></a>), <a class="idref" href="lec_05_dfa.html#a:61"><span class="id" title="variable">a</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">\</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">in</span></a> <a class="idref" href="lec_05_dfa.html#s:57"><span class="id" title="variable">s</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_05_dfa.html#regular"><span class="id" title="definition">regular</span></a> (<a class="idref" href="lec_05_dfa.html#L:56"><span class="id" title="variable">L</span></a> <a class="idref" href="lec_05_dfa.html#a:61"><span class="id" title="variable">a</span></a>)<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">)</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#regular"><span class="id" title="definition">regular</span></a> (<span class="id" title="keyword">fun</span> (<a id="x:58" class="idref" href="#x:58"><span class="id" title="binder">x</span></a>: <a class="idref" href="lec_05_dfa.html#word"><span class="id" title="abbreviation">word</span></a>) =&gt; <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#3df228c109f14f0423b4fccc967ee1ac"><span class="id" title="notation">exists2</span></a> <a id="a:60" class="idref" href="#a:60"><span class="id" title="binder">a</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#3df228c109f14f0423b4fccc967ee1ac"><span class="id" title="notation">,</span></a> <a class="idref" href="lec_05_dfa.html#a:59"><span class="id" title="variable">a</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">\</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">in</span></a> <a class="idref" href="lec_05_dfa.html#s:57"><span class="id" title="variable">s</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#3df228c109f14f0423b4fccc967ee1ac"><span class="id" title="notation">&amp;</span></a> <a class="idref" href="lec_05_dfa.html#L:56"><span class="id" title="variable">L</span></a> <a class="idref" href="lec_05_dfa.html#a:60"><span class="id" title="variable">a</span></a> <a class="idref" href="lec_05_dfa.html#x:58"><span class="id" title="variable">x</span></a>).<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">elim</span>: <span class="id" title="var">s</span>. <span class="comment">(*&nbsp;induction&nbsp;s&nbsp;*)</span><br/>
+&nbsp;&nbsp;- <span class="id" title="tactic">move</span> =&gt; <span class="id" title="var">_</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Locate</span> <span class="id" title="var">regular_ext</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span>: <a class="idref" href="lec_05_dfa.html#regular_ext"><span class="id" title="lemma">regular_ext</span></a> <a class="idref" href="lec_05_dfa.html#regular0"><span class="id" title="lemma">regular0</span></a> <span class="id" title="var">_</span>. <span class="comment">(*&nbsp;refine&nbsp;(regular_ext&nbsp;regular0&nbsp;_).&nbsp;*)</span><br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">split</span> =&gt; //=.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">move</span> =&gt; <span class="id" title="var">IHcontra</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">elim</span>: <span class="id" title="var">IHcontra</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">by</span> [].<br/>
+&nbsp;&nbsp;- <span class="id" title="tactic">move</span> =&gt; <span class="id" title="var">a</span> <span class="id" title="var">s</span> <span class="id" title="var">IH</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Locate</span> <span class="id" title="var">forall_consT</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Check</span> <span class="id" title="lemma">forall_consT</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">move</span> =&gt; /<span class="id" title="lemma">forall_consT</span> [<span class="id" title="var">H1</span> <span class="id" title="var">H2</span>].<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">pose</span> <span class="id" title="var">L'</span> := (<span class="id" title="keyword">fun</span> <a id="x:62" class="idref" href="#x:62"><span class="id" title="binder">x</span></a> =&gt; <span class="id" title="var">L</span> <span class="id" title="var">a</span> <a class="idref" href="lec_05_dfa.html#x:62"><span class="id" title="variable">x</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#f031fe1957c4a4a8e217aa46af2b4e25"><span class="id" title="notation">\/</span></a> (<span class="id" title="keyword">fun</span> <a id="x:63" class="idref" href="#x:63"><span class="id" title="binder">x</span></a> : <a class="idref" href="lec_05_dfa.html#word"><span class="id" title="abbreviation">word</span></a> =&gt; <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#59ba2b47d2814e66f8210a649ae6e6bc"><span class="id" title="notation">exists2</span></a> <a id="a:65" class="idref" href="#a:65"><span class="id" title="binder">a</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#59ba2b47d2814e66f8210a649ae6e6bc"><span class="id" title="notation">:</span></a> <span class="id" title="var">T</span><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#59ba2b47d2814e66f8210a649ae6e6bc"><span class="id" title="notation">,</span></a> <a class="idref" href="lec_05_dfa.html#a:64"><span class="id" title="variable">a</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">\</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">in</span></a> <span class="id" title="var">s</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#59ba2b47d2814e66f8210a649ae6e6bc"><span class="id" title="notation">&amp;</span></a> <span class="id" title="var">L</span> <a class="idref" href="lec_05_dfa.html#a:65"><span class="id" title="variable">a</span></a> <a class="idref" href="lec_05_dfa.html#x:63"><span class="id" title="variable">x</span></a>) <a class="idref" href="lec_05_dfa.html#x:62"><span class="id" title="variable">x</span></a>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span>: (<a class="idref" href="lec_05_dfa.html#regular_ext"><span class="id" title="lemma">regular_ext</span></a> (<span class="id" title="var">L2</span> := <span class="id" title="var">L'</span>)); <span class="id" title="tactic">first</span> <span class="id" title="tactic">by</span> <span class="id" title="tactic">apply</span>: <a class="idref" href="lec_05_dfa.html#regularU"><span class="id" title="lemma">regularU</span></a> =&gt; //; <span class="id" title="tactic">exact</span>: <span class="id" title="var">IH</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">move</span> =&gt; <span class="id" title="var">x</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> /<span class="id" title="var">L'</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Locate</span> <span class="id" title="var">exists_cons</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Check</span> <span class="id" title="lemma">exists_cons</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">exact</span>: <span class="id" title="lemma">exists_cons</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="lec_05_dfa.html#FA"><span class="id" title="section">FA</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab28"></a><h2 class="section">Non-regular Langauges?</h2>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> You might guess that there are non-regular languages.
+
+</li>
+<li> In other words, there are languages that a DFA cannot recognize.
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab29"></a><h3 class="section">Exercises</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Attempt to construct a DFA that matches at least 3 1's or informally
+     argue why it is not possible (see board).
+
+</li>
+<li> Attempt to construct a DFA that matches n 0's followed by n 1's or
+     argue informally why it is not possible for any n (impossible).
+
+</li>
+<li> Attempt to construct a DFA that matches n 0's followed 1 followed by
+     n 0's or argue informally why it is not possible (impossible).
+
+</li>
+<li> Attempt to construct a DFA that matches the same number of 01's
+     followed by 10's or argue informally why it is not possible.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Section</span> <a id="NonRegular" class="idref" href="#NonRegular"><span class="id" title="section">NonRegular</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Variables</span> (<a id="NonRegular.char" class="idref" href="#NonRegular.char"><span class="id" title="variable">char</span></a>: <span class="id" title="abbreviation">finType</span>) .<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Implicit</span> <span class="id" title="keyword">Types</span> (<span class="id" title="var">L</span>: <span class="id" title="definition">lang</span> <a class="idref" href="lec_05_dfa.html#NonRegular.char"><span class="id" title="variable">char</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab30"></a><h3 class="section">Canonical counter-example</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> A sequence of n a's followed by n b's.
+
+</li>
+</ul>
+   
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Hypothesis</span> (<a id="NonRegular.a" class="idref" href="#NonRegular.a"><span class="id" title="variable">a</span></a> <a id="NonRegular.b" class="idref" href="#NonRegular.b"><span class="id" title="variable">b</span></a> : <a class="idref" href="lec_05_dfa.html#NonRegular.char"><span class="id" title="variable">char</span></a>) (<a id="NonRegular.Hab" class="idref" href="#NonRegular.Hab"><span class="id" title="variable">Hab</span></a> : <a class="idref" href="lec_05_dfa.html#a:68"><span class="id" title="variable">a</span></a> <span class="id" title="notation">!=</span> <a class="idref" href="lec_05_dfa.html#b:67"><span class="id" title="variable">b</span></a>).<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Local</span> <span class="id" title="keyword">Set</span> <span class="id" title="var">Default</span> <span class="id" title="keyword">Proof</span> <span class="id" title="var">Using</span> "Hab".<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="Lab" class="idref" href="#Lab"><span class="id" title="definition">Lab</span></a> (<a id="w:70" class="idref" href="#w:70"><span class="id" title="binder">w</span></a>: <span class="id" title="abbreviation">seq</span> <a class="idref" href="lec_05_dfa.html#NonRegular.char"><span class="id" title="variable">char</span></a>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">exists</span></a> <a id="n:71" class="idref" href="#n:71"><span class="id" title="binder">n</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">,</span></a> <a class="idref" href="lec_05_dfa.html#w:70"><span class="id" title="variable">w</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <span class="id" title="definition">nseq</span> <a class="idref" href="lec_05_dfa.html#n:71"><span class="id" title="variable">n</span></a> <a class="idref" href="lec_05_dfa.html#NonRegular.a"><span class="id" title="variable">a</span></a> <span class="id" title="notation">++</span> <span class="id" title="definition">nseq</span> <a class="idref" href="lec_05_dfa.html#n:71"><span class="id" title="variable">n</span></a> <a class="idref" href="lec_05_dfa.html#NonRegular.b"><span class="id" title="variable">b</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab31"></a><h3 class="section">Pigeon-Hole Principal (PHP):</h3>
+
+
+<div class="paragraph"> </div>
+
+     If I have n bins and k &gt; n items, then 1 bin contains at least two items.  
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Deceptively simple.
+
+</li>
+<li> Counting arguments are used a lot in computability proofs.
+
+</li>
+</ul>
+   
+<div class="paragraph"> </div>
+
+<a id="lab32"></a><h3 class="section">Claim: The language a^n b^n is not regular.</h3>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="comment">(*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Proof.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Suppose&nbsp;for&nbsp;the&nbsp;sake&nbsp;of&nbsp;contradiction&nbsp;that&nbsp;the&nbsp;language&nbsp;a^nb^n&nbsp;is&nbsp;regular.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Thus&nbsp;there&nbsp;is&nbsp;a&nbsp;DFA&nbsp;A&nbsp;that&nbsp;accepts&nbsp;a^nb^n&nbsp;for&nbsp;any&nbsp;n.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Fix&nbsp;n&nbsp;=&nbsp;|A|&nbsp;+&nbsp;1.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Define&nbsp;a&nbsp;function&nbsp;f:&nbsp;{0..n}&nbsp;-&gt;&nbsp;Q&nbsp;where&nbsp;f(x)&nbsp;=&nbsp;the&nbsp;state&nbsp;of&nbsp;the&nbsp;dfa&nbsp;after<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x&nbsp;a's&nbsp;have&nbsp;been&nbsp;matched.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Then,&nbsp;by&nbsp;the&nbsp;PHP,&nbsp;we&nbsp;have&nbsp;that&nbsp;f(x)&nbsp;=&nbsp;f(y)&nbsp;for&nbsp;some&nbsp;numbers&nbsp;x&nbsp;!=&nbsp;y.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;By&nbsp;construction,&nbsp;the&nbsp;DFA&nbsp;accepts&nbsp;a^xb^x,&nbsp;which&nbsp;means&nbsp;it&nbsp;accepts&nbsp;the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;string&nbsp;b^x&nbsp;from&nbsp;state&nbsp;f(x).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Since&nbsp;f(x)&nbsp;=&nbsp;f(y),&nbsp;the&nbsp;DFA&nbsp;also&nbsp;accepts&nbsp;a^yb^x,&nbsp;a&nbsp;contradiction.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Intuition:<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;----&nbsp;&nbsp;&nbsp;----&nbsp;&nbsp;&nbsp;&nbsp;----<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|q&nbsp;|-&gt;&nbsp;|&nbsp;p|&nbsp;-&gt;&nbsp;|r&nbsp;|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;----&nbsp;&nbsp;&nbsp;----&nbsp;&nbsp;&nbsp;&nbsp;----<br/>
+&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;p&nbsp;is&nbsp;the&nbsp;state&nbsp;of&nbsp;the&nbsp;DFA&nbsp;we&nbsp;are&nbsp;in&nbsp;after&nbsp;x&nbsp;0's&nbsp;and&nbsp;y&nbsp;0's&nbsp;have&nbsp;been&nbsp;matched<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;thus&nbsp;q&nbsp;matches&nbsp;x&nbsp;0's&nbsp;and&nbsp;y&nbsp;0's<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;r&nbsp;matches&nbsp;b^x&nbsp;by&nbsp;construction<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;thus&nbsp;this&nbsp;DFA&nbsp;matches&nbsp;both&nbsp;a^xb^x&nbsp;and&nbsp;a^yb^x<br/>
+&nbsp;&nbsp;&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+     This proof does not exactly follow the proof above.
+     But it contains a similar idea.     
+   
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="residual" class="idref" href="#residual"><span class="id" title="definition">residual</span></a> (<a id="L:72" class="idref" href="#L:72"><span class="id" title="binder">L</span></a>: <span class="id" title="definition">lang</span> <a class="idref" href="lec_05_dfa.html#NonRegular.char"><span class="id" title="variable">char</span></a>) (<a id="x:73" class="idref" href="#x:73"><span class="id" title="binder">x</span></a>: <span class="id" title="abbreviation">seq</span> <a class="idref" href="lec_05_dfa.html#NonRegular.char"><span class="id" title="variable">char</span></a>): <span class="id" title="abbreviation">seq</span> <a class="idref" href="lec_05_dfa.html#NonRegular.char"><span class="id" title="variable">char</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">fun</span> (<a id="y:74" class="idref" href="#y:74"><span class="id" title="binder">y</span></a>: <span class="id" title="abbreviation">seq</span> <a class="idref" href="lec_05_dfa.html#NonRegular.char"><span class="id" title="variable">char</span></a>) =&gt; <a class="idref" href="lec_05_dfa.html#L:72"><span class="id" title="variable">L</span></a> (<a class="idref" href="lec_05_dfa.html#x:73"><span class="id" title="variable">x</span></a> <span class="id" title="notation">++</span> <a class="idref" href="lec_05_dfa.html#y:74"><span class="id" title="variable">y</span></a>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Lemma</span> <a id="residualP" class="idref" href="#residualP"><span class="id" title="lemma">residualP</span></a> (<a id="f:75" class="idref" href="#f:75"><span class="id" title="binder">f</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="definition">word</span> <a class="idref" href="lec_05_dfa.html#NonRegular.char"><span class="id" title="variable">char</span></a>) (<a id="L:76" class="idref" href="#L:76"><span class="id" title="binder">L</span></a> : <span class="id" title="definition">lang</span> <a class="idref" href="lec_05_dfa.html#NonRegular.char"><span class="id" title="variable">char</span></a>) :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">(</span></a><span class="id" title="keyword">forall</span> (<a id="n1:77" class="idref" href="#n1:77"><span class="id" title="binder">n1</span></a> <a id="n2:78" class="idref" href="#n2:78"><span class="id" title="binder">n2</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>), <a class="idref" href="lec_05_dfa.html#residual"><span class="id" title="definition">residual</span></a> <a class="idref" href="lec_05_dfa.html#L:76"><span class="id" title="variable">L</span></a> (<a class="idref" href="lec_05_dfa.html#f:75"><span class="id" title="variable">f</span></a> <a class="idref" href="lec_05_dfa.html#n1:77"><span class="id" title="variable">n1</span></a>) <span class="id" title="notation">=</span><span class="id" title="notation">p</span> <a class="idref" href="lec_05_dfa.html#residual"><span class="id" title="definition">residual</span></a> <a class="idref" href="lec_05_dfa.html#L:76"><span class="id" title="variable">L</span></a> (<a class="idref" href="lec_05_dfa.html#f:75"><span class="id" title="variable">f</span></a> <a class="idref" href="lec_05_dfa.html#n2:78"><span class="id" title="variable">n2</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_05_dfa.html#n1:77"><span class="id" title="variable">n1</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="lec_05_dfa.html#n2:78"><span class="id" title="variable">n2</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">)</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#63a68285c81db8f9bc456233bb9ed181"><span class="id" title="notation">~</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#inhabited"><span class="id" title="inductive">inhabited</span></a> (<a class="idref" href="lec_05_dfa.html#regular"><span class="id" title="definition">regular</span></a> <a class="idref" href="lec_05_dfa.html#L:76"><span class="id" title="variable">L</span></a>).<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">move</span> =&gt; <span class="id" title="var">f_spec</span> [[<span class="id" title="var">A</span> <span class="id" title="var">E</span>]].<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">pose</span> <span class="id" title="var">f'</span> (<a id="n:79" class="idref" href="#n:79"><span class="id" title="binder">n</span></a> : <span class="id" title="notation">'</span><span class="id" title="notation">I_</span><span class="id" title="notation">#|</span><span class="id" title="var">A</span><span class="id" title="notation">|</span><span class="id" title="notation">.+1</span>) := <a class="idref" href="lec_05_dfa.html#delta_s"><span class="id" title="definition">delta_s</span></a> <span class="id" title="var">A</span> (<span class="id" title="var">f</span> <a class="idref" href="lec_05_dfa.html#n:79"><span class="id" title="variable">n</span></a>).<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;suff:&nbsp;injective&nbsp;f'&nbsp;by&nbsp;move/card_leq_inj&nbsp;;&nbsp;rewrite&nbsp;card_ord&nbsp;ltnn.&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">suff</span>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrfun.html#injective"><span class="id" title="definition">injective</span></a> <span class="id" title="var">f'</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="id" title="keyword">Print</span> <span class="id" title="lemma">card_leq_inj</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">move</span> /<span class="id" title="lemma">card_leq_inj</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">card_ord</span> <span class="id" title="lemma">ltnn</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">by</span> [].<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">move</span> =&gt; [<span class="id" title="var">n1</span> <span class="id" title="var">H1</span>] [<span class="id" title="var">n2</span> <span class="id" title="var">H2</span>].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> /<span class="id" title="var">f'</span> /<a class="idref" href="lec_05_dfa.html#delta_s"><span class="id" title="definition">delta_s</span></a> /= =&gt; <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span>/<span class="id" title="lemma">eqP</span>; <span class="id" title="tactic">change</span> (<span class="id" title="var">n1</span> <span class="id" title="notation">==</span> <span class="id" title="var">n2</span>); <span class="id" title="tactic">apply</span>/<span class="id" title="lemma">eqP</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span>: <span class="id" title="var">f_spec</span> =&gt; <span class="id" title="var">w</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> /<a class="idref" href="lec_05_dfa.html#residual"><span class="id" title="definition">residual</span></a>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> !<span class="id" title="var">E</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> !<span class="id" title="definition">inE</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> /<a class="idref" href="lec_05_dfa.html#dfa_accept"><span class="id" title="definition">dfa_accept</span></a>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> !<a class="idref" href="lec_05_dfa.html#delta_cat"><span class="id" title="lemma">delta_cat</span></a>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">by</span> <span class="id" title="tactic">rewrite</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Lemma</span> <a id="countL" class="idref" href="#countL"><span class="id" title="lemma">countL</span></a> (<a id="n1:80" class="idref" href="#n1:80"><span class="id" title="binder">n1</span></a> <a id="n2:81" class="idref" href="#n2:81"><span class="id" title="binder">n2</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>):<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="definition">count</span> (<span class="id" title="definition">pred1</span> <a class="idref" href="lec_05_dfa.html#NonRegular.a"><span class="id" title="variable">a</span></a>) (<span class="id" title="definition">nseq</span> <a class="idref" href="lec_05_dfa.html#n1:80"><span class="id" title="variable">n1</span></a> <a class="idref" href="lec_05_dfa.html#NonRegular.a"><span class="id" title="variable">a</span></a> <span class="id" title="notation">++</span> <span class="id" title="definition">nseq</span> <a class="idref" href="lec_05_dfa.html#n2:81"><span class="id" title="variable">n2</span></a> <a class="idref" href="lec_05_dfa.html#NonRegular.b"><span class="id" title="variable">b</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="lec_05_dfa.html#n1:80"><span class="id" title="variable">n1</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">by</span> <span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">count_cat</span> !<span class="id" title="lemma">count_nseq</span> /= <span class="id" title="abbreviation">eqxx</span> <span class="id" title="lemma">eq_sym</span> (<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#negbTE"><span class="id" title="lemma">negbTE</span></a> <a class="idref" href="lec_05_dfa.html#NonRegular.Hab"><span class="id" title="variable">Hab</span></a>) <span class="id" title="lemma">mul1n</span> <span class="id" title="lemma">mul0n</span> <span class="id" title="lemma">addn0</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Lemma</span> <a id="countR" class="idref" href="#countR"><span class="id" title="lemma">countR</span></a> (<a id="n1:82" class="idref" href="#n1:82"><span class="id" title="binder">n1</span></a> <a id="n2:83" class="idref" href="#n2:83"><span class="id" title="binder">n2</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>):<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="definition">count</span> (<span class="id" title="definition">pred1</span> <a class="idref" href="lec_05_dfa.html#NonRegular.b"><span class="id" title="variable">b</span></a>) (<span class="id" title="definition">nseq</span> <a class="idref" href="lec_05_dfa.html#n1:82"><span class="id" title="variable">n1</span></a> <a class="idref" href="lec_05_dfa.html#NonRegular.a"><span class="id" title="variable">a</span></a> <span class="id" title="notation">++</span> <span class="id" title="definition">nseq</span> <a class="idref" href="lec_05_dfa.html#n2:83"><span class="id" title="variable">n2</span></a> <a class="idref" href="lec_05_dfa.html#NonRegular.b"><span class="id" title="variable">b</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="lec_05_dfa.html#n2:83"><span class="id" title="variable">n2</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">by</span> <span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">count_cat</span> !<span class="id" title="lemma">count_nseq</span> /= (<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#negbTE"><span class="id" title="lemma">negbTE</span></a> <a class="idref" href="lec_05_dfa.html#NonRegular.Hab"><span class="id" title="variable">Hab</span></a>) <span class="id" title="abbreviation">eqxx</span> //= <span class="id" title="lemma">mul1n</span> <span class="id" title="lemma">mul0n</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Lemma</span> <a id="Lab_eq" class="idref" href="#Lab_eq"><span class="id" title="lemma">Lab_eq</span></a> (<a id="n1:84" class="idref" href="#n1:84"><span class="id" title="binder">n1</span></a> <a id="n2:85" class="idref" href="#n2:85"><span class="id" title="binder">n2</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>):<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#Lab"><span class="id" title="definition">Lab</span></a> (<span class="id" title="definition">nseq</span> <a class="idref" href="lec_05_dfa.html#n1:84"><span class="id" title="variable">n1</span></a> <a class="idref" href="lec_05_dfa.html#NonRegular.a"><span class="id" title="variable">a</span></a> <span class="id" title="notation">++</span> <span class="id" title="definition">nseq</span> <a class="idref" href="lec_05_dfa.html#n2:85"><span class="id" title="variable">n2</span></a> <a class="idref" href="lec_05_dfa.html#NonRegular.b"><span class="id" title="variable">b</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#n1:84"><span class="id" title="variable">n1</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="lec_05_dfa.html#n2:85"><span class="id" title="variable">n2</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">move</span> =&gt; [<span class="id" title="var">n</span> <span class="id" title="var">H</span>].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">by</span> <span class="id" title="tactic">rewrite</span> -[<span class="id" title="var">n1</span>](<a class="idref" href="lec_05_dfa.html#countL"><span class="id" title="lemma">countL</span></a> <span class="id" title="var">_</span> <span class="id" title="var">n2</span>) -{2}[<span class="id" title="var">n2</span>](<a class="idref" href="lec_05_dfa.html#countR"><span class="id" title="lemma">countR</span></a> <span class="id" title="var">n1</span> <span class="id" title="var">n2</span>) <span class="id" title="var">H</span> <a class="idref" href="lec_05_dfa.html#countL"><span class="id" title="lemma">countL</span></a> <a class="idref" href="lec_05_dfa.html#countR"><span class="id" title="lemma">countR</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Lemma</span> <a id="Lab_not_regular" class="idref" href="#Lab_not_regular"><span class="id" title="lemma">Lab_not_regular</span></a>:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#63a68285c81db8f9bc456233bb9ed181"><span class="id" title="notation">~</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#inhabited"><span class="id" title="inductive">inhabited</span></a> (<a class="idref" href="lec_05_dfa.html#regular"><span class="id" title="definition">regular</span></a> <a class="idref" href="lec_05_dfa.html#Lab"><span class="id" title="definition">Lab</span></a>).<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">pose</span> <span class="id" title="var">f</span> <a id="n:86" class="idref" href="#n:86"><span class="id" title="binder">n</span></a> := <span class="id" title="definition">nseq</span> <a class="idref" href="lec_05_dfa.html#n:86"><span class="id" title="variable">n</span></a> <a class="idref" href="lec_05_dfa.html#NonRegular.a"><span class="id" title="variable">a</span></a>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span>: (@<a class="idref" href="lec_05_dfa.html#residualP"><span class="id" title="lemma">residualP</span></a> <span class="id" title="var">f</span>) =&gt; <span class="id" title="var">n1</span> <span class="id" title="var">n2</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">move</span>/(<span class="id" title="var">_</span> (<span class="id" title="definition">nseq</span> <span class="id" title="var">n2</span> <a class="idref" href="lec_05_dfa.html#NonRegular.b"><span class="id" title="variable">b</span></a>)) =&gt; <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span>: <a class="idref" href="lec_05_dfa.html#Lab_eq"><span class="id" title="lemma">Lab_eq</span></a>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">by</span> <span class="id" title="tactic">exists</span> <span class="id" title="var">n2</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="lec_05_dfa.html#NonRegular"><span class="id" title="section">NonRegular</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab33"></a><h2 class="section">Pumping Lemma</h2>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Is there a more generic way to construct a counter example?
+
+</li>
+<li> Yes: this is given by the pumping lemma for regular languages.
+
+</li>
+</ul>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Section</span> <a id="Pumping" class="idref" href="#Pumping"><span class="id" title="section">Pumping</span></a>.<br/>
+</div>
+
+<div class="doc">
+<a id="lab34"></a><h3 class="section">Get the substring between i and j</h3>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="sub" class="idref" href="#sub"><span class="id" title="definition">sub</span></a> (<a id="T:87" class="idref" href="#T:87"><span class="id" title="binder">T</span></a>:<span class="id" title="abbreviation">eqType</span>) (<a id="i:88" class="idref" href="#i:88"><span class="id" title="binder">i</span></a> <a id="j:89" class="idref" href="#j:89"><span class="id" title="binder">j</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) (<a id="s:90" class="idref" href="#s:90"><span class="id" title="binder">s</span></a> : <span class="id" title="abbreviation">seq</span> <a class="idref" href="lec_05_dfa.html#T:87"><span class="id" title="variable">T</span></a>): <span class="id" title="abbreviation">seq</span> <a class="idref" href="lec_05_dfa.html#T:87"><span class="id" title="variable">T</span></a> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="definition">take</span> (<a class="idref" href="lec_05_dfa.html#j:89"><span class="id" title="variable">j</span></a><span class="id" title="notation">-</span><a class="idref" href="lec_05_dfa.html#i:88"><span class="id" title="variable">i</span></a>) (<span class="id" title="definition">drop</span> <a class="idref" href="lec_05_dfa.html#i:88"><span class="id" title="variable">i</span></a> <a class="idref" href="lec_05_dfa.html#s:90"><span class="id" title="variable">s</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab35"></a><h3 class="section">Repeat a substring</h3>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="rep" class="idref" href="#rep"><span class="id" title="definition">rep</span></a> (<a id="T:91" class="idref" href="#T:91"><span class="id" title="binder">T</span></a> : <span class="id" title="abbreviation">eqType</span>) (<a id="s:92" class="idref" href="#s:92"><span class="id" title="binder">s</span></a> : <span class="id" title="abbreviation">seq</span> <a class="idref" href="lec_05_dfa.html#T:91"><span class="id" title="variable">T</span></a>) (<a id="n:93" class="idref" href="#n:93"><span class="id" title="binder">n</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) : <span class="id" title="abbreviation">seq</span> <a class="idref" href="lec_05_dfa.html#T:91"><span class="id" title="variable">T</span></a> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="definition">iter</span> <a class="idref" href="lec_05_dfa.html#n:93"><span class="id" title="variable">n</span></a> (<span class="id" title="definition">cat</span> <a class="idref" href="lec_05_dfa.html#s:92"><span class="id" title="variable">s</span></a>) <span class="id" title="notation">[::]</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Variable</span> <a id="Pumping.char" class="idref" href="#Pumping.char"><span class="id" title="variable">char</span></a> : <span class="id" title="abbreviation">finType</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> What is this lemma intuitively saying?
+
+</li>
+<li> If I land at the same dfa state after matching x,
+       then I can match any number of repititions of x.
+
+</li>
+</ul>
+   
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" title="keyword">Lemma</span> <a id="delta_rep" class="idref" href="#delta_rep"><span class="id" title="lemma">delta_rep</span></a> (<a id="A:95" class="idref" href="#A:95"><span class="id" title="binder">A</span></a> : <a class="idref" href="lec_05_dfa.html#dfa"><span class="id" title="record">dfa</span></a> <a class="idref" href="lec_05_dfa.html#Pumping.char"><span class="id" title="variable">char</span></a>) (<a id="p:96" class="idref" href="#p:96"><span class="id" title="binder">p</span></a> : <a class="idref" href="lec_05_dfa.html#A:95"><span class="id" title="variable">A</span></a>) (<a id="x:97" class="idref" href="#x:97"><span class="id" title="binder">x</span></a>: <span class="id" title="abbreviation">seq</span> <a class="idref" href="lec_05_dfa.html#Pumping.char"><span class="id" title="variable">char</span></a>) (<a id="i:98" class="idref" href="#i:98"><span class="id" title="binder">i</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#delta"><span class="id" title="definition">delta</span></a> <a class="idref" href="lec_05_dfa.html#p:96"><span class="id" title="variable">p</span></a> <a class="idref" href="lec_05_dfa.html#x:97"><span class="id" title="variable">x</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="lec_05_dfa.html#p:96"><span class="id" title="variable">p</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#delta"><span class="id" title="definition">delta</span></a> <a class="idref" href="lec_05_dfa.html#p:96"><span class="id" title="variable">p</span></a> (<a class="idref" href="lec_05_dfa.html#rep"><span class="id" title="definition">rep</span></a> <a class="idref" href="lec_05_dfa.html#x:97"><span class="id" title="variable">x</span></a> <a class="idref" href="lec_05_dfa.html#i:98"><span class="id" title="variable">i</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="lec_05_dfa.html#p:96"><span class="id" title="variable">p</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">elim</span>: <span class="id" title="var">i</span> =&gt; //=.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">move</span> =&gt; <span class="id" title="var">i</span> <span class="id" title="var">IH</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <a class="idref" href="lec_05_dfa.html#delta_cat"><span class="id" title="lemma">delta_cat</span></a>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="var">IH</span> //.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Locate</span> "/\".<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Check</span> <span class="id" title="definition">nilp</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="comment">(*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Claim:&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;x&nbsp;++&nbsp;y&nbsp;++&nbsp;z&nbsp;is&nbsp;recognized&nbsp;by&nbsp;a&nbsp;DFA&nbsp;A<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;|A|&nbsp;&lt;&nbsp;|y|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Then&nbsp;there&nbsp;exists&nbsp;words&nbsp;u,&nbsp;v,&nbsp;w&nbsp;s.t.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;|v|&nbsp;&gt;&nbsp;0<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;y&nbsp;=&nbsp;u&nbsp;++&nbsp;v&nbsp;++&nbsp;w<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3.&nbsp;x&nbsp;++&nbsp;u&nbsp;++&nbsp;v^*&nbsp;++&nbsp;w&nbsp;++&nbsp;y&nbsp;is&nbsp;recogized&nbsp;by&nbsp;A<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Intuition:<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;----&nbsp;&nbsp;&nbsp;----&nbsp;&nbsp;&nbsp;&nbsp;----<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|q&nbsp;|-&gt;&nbsp;|&nbsp;p|&nbsp;-&gt;&nbsp;|r&nbsp;|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;----&nbsp;&nbsp;&nbsp;----&nbsp;&nbsp;&nbsp;&nbsp;----<br/>
+&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;q&nbsp;matches&nbsp;x&nbsp;++&nbsp;u<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;p&nbsp;matches&nbsp;v<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;r&nbsp;matches&nbsp;w&nbsp;++&nbsp;y<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;----<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|P'|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;----<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;^&nbsp;|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;v<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;----&nbsp;&nbsp;&nbsp;----&nbsp;&nbsp;&nbsp;&nbsp;----<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|q&nbsp;|-&gt;&nbsp;|&nbsp;p|&nbsp;-&gt;&nbsp;|r&nbsp;|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;----&nbsp;&nbsp;&nbsp;----&nbsp;&nbsp;&nbsp;&nbsp;----<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;q&nbsp;matches&nbsp;x&nbsp;++&nbsp;u<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;p&nbsp;&lt;-&gt;&nbsp;p'&nbsp;matches&nbsp;v&nbsp;by&nbsp;PHP,&nbsp;and&nbsp;therefore,&nbsp;can&nbsp;match&nbsp;any&nbsp;number&nbsp;of&nbsp;v<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;r&nbsp;matches&nbsp;w&nbsp;++&nbsp;y<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Lemma</span> <a id="pump_dfa" class="idref" href="#pump_dfa"><span class="id" title="lemma">pump_dfa</span></a> (<a id="A:99" class="idref" href="#A:99"><span class="id" title="binder">A</span></a>: <a class="idref" href="lec_05_dfa.html#dfa"><span class="id" title="record">dfa</span></a> <a class="idref" href="lec_05_dfa.html#Pumping.char"><span class="id" title="variable">char</span></a>) (<a id="x:100" class="idref" href="#x:100"><span class="id" title="binder">x</span></a> <a id="y:101" class="idref" href="#y:101"><span class="id" title="binder">y</span></a> <a id="z:102" class="idref" href="#z:102"><span class="id" title="binder">z</span></a>: <span class="id" title="abbreviation">seq</span> <a class="idref" href="lec_05_dfa.html#Pumping.char"><span class="id" title="variable">char</span></a>) :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_05_dfa.html#x:100"><span class="id" title="variable">x</span></a> <span class="id" title="notation">++</span> <a class="idref" href="lec_05_dfa.html#y:101"><span class="id" title="variable">y</span></a> <span class="id" title="notation">++</span> <a class="idref" href="lec_05_dfa.html#z:102"><span class="id" title="variable">z</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">\</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">in</span></a> <a class="idref" href="lec_05_dfa.html#dfa_lang"><span class="id" title="definition">dfa_lang</span></a> <a class="idref" href="lec_05_dfa.html#A:99"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">#|</span><a class="idref" href="lec_05_dfa.html#A:99"><span class="id" title="variable">A</span></a><span class="id" title="notation">|</span> <span class="id" title="notation">&lt;</span> <span class="id" title="definition">size</span> <a class="idref" href="lec_05_dfa.html#y:101"><span class="id" title="variable">y</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">exists</span></a> <a id="u:103" class="idref" href="#u:103"><span class="id" title="binder">u</span></a> <a id="v:104" class="idref" href="#v:104"><span class="id" title="binder">v</span></a> <a id="w:105" class="idref" href="#w:105"><span class="id" title="binder">w</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">,</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#d7e433f5d2fe56f5b712860a9ff2a681"><span class="id" title="notation">[/\</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b3ebd0deddd84fd60e149cb5ef719351"><span class="id" title="notation">~~</span></a> <span class="id" title="definition">nilp</span> <a class="idref" href="lec_05_dfa.html#v:104"><span class="id" title="variable">v</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#d7e433f5d2fe56f5b712860a9ff2a681"><span class="id" title="notation">,</span></a> <a class="idref" href="lec_05_dfa.html#y:101"><span class="id" title="variable">y</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="lec_05_dfa.html#u:103"><span class="id" title="variable">u</span></a> <span class="id" title="notation">++</span> <a class="idref" href="lec_05_dfa.html#v:104"><span class="id" title="variable">v</span></a> <span class="id" title="notation">++</span> <a class="idref" href="lec_05_dfa.html#w:105"><span class="id" title="variable">w</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#d7e433f5d2fe56f5b712860a9ff2a681"><span class="id" title="notation">&amp;</span></a> <span class="id" title="keyword">forall</span> <a id="i:106" class="idref" href="#i:106"><span class="id" title="binder">i</span></a>, <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">(</span></a><a class="idref" href="lec_05_dfa.html#x:100"><span class="id" title="variable">x</span></a> <span class="id" title="notation">++</span> <a class="idref" href="lec_05_dfa.html#u:103"><span class="id" title="variable">u</span></a> <span class="id" title="notation">++</span> <a class="idref" href="lec_05_dfa.html#rep"><span class="id" title="definition">rep</span></a> <a class="idref" href="lec_05_dfa.html#v:104"><span class="id" title="variable">v</span></a> <a class="idref" href="lec_05_dfa.html#i:106"><span class="id" title="variable">i</span></a> <span class="id" title="notation">++</span> <a class="idref" href="lec_05_dfa.html#w:105"><span class="id" title="variable">w</span></a> <span class="id" title="notation">++</span> <a class="idref" href="lec_05_dfa.html#z:102"><span class="id" title="variable">z</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">)</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">\</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b09457274bcb94927e289b8a9e9cd3f7"><span class="id" title="notation">in</span></a> <a class="idref" href="lec_05_dfa.html#dfa_lang"><span class="id" title="definition">dfa_lang</span></a> <a class="idref" href="lec_05_dfa.html#A:99"><span class="id" title="variable">A</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#d7e433f5d2fe56f5b712860a9ff2a681"><span class="id" title="notation">]</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> -<a class="idref" href="lec_05_dfa.html#delta_lang"><span class="id" title="lemma">delta_lang</span></a>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">move</span> =&gt; <span class="id" title="var">H1</span> <span class="id" title="var">H2</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;I'_n&nbsp;gives&nbsp;the&nbsp;set&nbsp;{0,&nbsp;...,&nbsp;n}.&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Locate</span> "''I_' _'".<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Claim:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fun&nbsp;i:&nbsp;{0,&nbsp;...,&nbsp;|y|}&nbsp;=&gt;&nbsp;delta&nbsp;(delta_s&nbsp;A&nbsp;x)&nbsp;(take&nbsp;i&nbsp;y))&nbsp;is&nbsp;not&nbsp;injective.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">have</span> /<span class="id" title="lemma">injectivePn</span>:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b3ebd0deddd84fd60e149cb5ef719351"><span class="id" title="notation">~~</span></a> <span class="id" title="definition">injectiveb</span> (<span class="id" title="keyword">fun</span> <a id="i:107" class="idref" href="#i:107"><span class="id" title="binder">i</span></a> : <span class="id" title="notation">'</span><span class="id" title="notation">I_</span><span class="id" title="notation">(</span><span class="id" title="definition">size</span> <span class="id" title="var">y</span><span class="id" title="notation">)</span> =&gt; <a class="idref" href="lec_05_dfa.html#delta"><span class="id" title="definition">delta</span></a> (<a class="idref" href="lec_05_dfa.html#delta_s"><span class="id" title="definition">delta_s</span></a> <span class="id" title="var">A</span> <span class="id" title="var">x</span>) (<span class="id" title="definition">take</span> <a class="idref" href="lec_05_dfa.html#i:107"><span class="id" title="variable">i</span></a> <span class="id" title="var">y</span>)).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#contraL"><span class="id" title="lemma">contraL</span></a> <span class="id" title="var">H2</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">move</span> =&gt; /<span class="id" title="lemma">injectiveP</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">move</span> =&gt; /<span class="id" title="lemma">card_leq_inj</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">leqNgt</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">card_ord</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">by</span> [].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;f_{ij}&nbsp;contains&nbsp;the&nbsp;claim&nbsp;that&nbsp;we&nbsp;have&nbsp;two&nbsp;different&nbsp;strings&nbsp;that<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;get&nbsp;us&nbsp;to&nbsp;the&nbsp;same&nbsp;DFA&nbsp;state.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">move</span> =&gt; [<span class="id" title="var">i</span>] [<span class="id" title="var">j</span>] <span class="id" title="var">ij</span> <span class="id" title="var">fij</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">wlog</span> {<span class="id" title="var">ij</span>} <span class="id" title="var">ij</span> : <span class="id" title="var">i</span> <span class="id" title="var">j</span> <span class="id" title="var">fij</span> / <span class="id" title="var">i</span> <span class="id" title="notation">&lt;</span> <span class="id" title="var">j</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">neq_ltn</span> <span class="id" title="tactic">in</span> <span class="id" title="var">ij</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">case</span>/<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#orP"><span class="id" title="lemma">orP</span></a> : <span class="id" title="var">ij</span> =&gt; <span class="id" title="var">ij</span> <span class="id" title="var">W</span>; <span class="id" title="tactic">exact</span>: <span class="id" title="var">W</span> <span class="id" title="var">_</span> <span class="id" title="var">ij</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;y&nbsp;=&nbsp;u&nbsp;++&nbsp;v&nbsp;++&nbsp;w<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;=&nbsp;take&nbsp;i&nbsp;y&nbsp;++&nbsp;sub&nbsp;i&nbsp;j&nbsp;y&nbsp;++&nbsp;drop&nbsp;j&nbsp;y&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">exists</span> (<span class="id" title="definition">take</span> <span class="id" title="var">i</span> <span class="id" title="var">y</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">exists</span> (<a class="idref" href="lec_05_dfa.html#sub"><span class="id" title="definition">sub</span></a> <span class="id" title="var">i</span> <span class="id" title="var">j</span> <span class="id" title="var">y</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">exists</span> (<span class="id" title="definition">drop</span> <span class="id" title="var">j</span> <span class="id" title="var">y</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">split</span> =&gt; [||<span class="id" title="var">k</span>].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;~~&nbsp;nilp&nbsp;v&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#contraL"><span class="id" title="lemma">contraL</span></a> <span class="id" title="var">ij</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> /<span class="id" title="definition">nilp</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">size_take</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">size_drop</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">ltn_sub2r</span> //.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">subn_eq0</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">leqNgt</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">by</span> [].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;y&nbsp;=&nbsp;take&nbsp;i&nbsp;y&nbsp;++&nbsp;sub&nbsp;i&nbsp;j&nbsp;y&nbsp;++&nbsp;drop&nbsp;j&nbsp;y&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">catA</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> -<span class="id" title="lemma">takeD</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">subnKC</span> //.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">cat_take_drop</span> //.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">ltnW</span> //.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;x&nbsp;++&nbsp;take&nbsp;i&nbsp;y&nbsp;++&nbsp;sub&nbsp;i&nbsp;j&nbsp;y&nbsp;++&nbsp;drop&nbsp;j&nbsp;y&nbsp;++&nbsp;z&nbsp;\in&nbsp;dfa_lang&nbsp;A&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="definition">inE</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> /<a class="idref" href="lec_05_dfa.html#dfa_accept"><span class="id" title="definition">dfa_accept</span></a>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> !<a class="idref" href="lec_05_dfa.html#delta_cat"><span class="id" title="lemma">delta_cat</span></a>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;This&nbsp;is&nbsp;where&nbsp;we&nbsp;get&nbsp;the&nbsp;"cycle".&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <a class="idref" href="lec_05_dfa.html#delta_rep"><span class="id" title="lemma">delta_rep</span></a>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="id" title="tactic">rewrite</span> <span class="id" title="var">fij</span>. <span class="comment">(*&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> -!<a class="idref" href="lec_05_dfa.html#delta_cat"><span class="id" title="lemma">delta_cat</span></a>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> !<span class="id" title="lemma">catA</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> -[<span class="id" title="notation">(</span><span class="id" title="var">x</span> <span class="id" title="notation">++</span> <span class="id" title="var">_</span><span class="id" title="notation">)</span> <span class="id" title="notation">++</span> <span class="id" title="var">_</span>]<span class="id" title="lemma">catA</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">cat_take_drop</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> -!<span class="id" title="lemma">catA</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">by</span> [].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> -<a class="idref" href="lec_05_dfa.html#delta_cat"><span class="id" title="lemma">delta_cat</span></a>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> -<span class="id" title="lemma">takeD</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">subnKC</span> //.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">exact</span>: <span class="id" title="lemma">ltnW</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Lemma</span> <a id="pumping" class="idref" href="#pumping"><span class="id" title="lemma">pumping</span></a> (<a id="L:108" class="idref" href="#L:108"><span class="id" title="binder">L</span></a> : <span class="id" title="definition">word</span> <a class="idref" href="lec_05_dfa.html#Pumping.char"><span class="id" title="variable">char</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">Prop</span>) :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">(</span></a><span class="id" title="keyword">forall</span> <a id="k:109" class="idref" href="#k:109"><span class="id" title="binder">k</span></a>, <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">exists</span></a> <a id="x:110" class="idref" href="#x:110"><span class="id" title="binder">x</span></a> <a id="y:111" class="idref" href="#y:111"><span class="id" title="binder">y</span></a> <a id="z:112" class="idref" href="#z:112"><span class="id" title="binder">z</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">,</span></a> <a class="idref" href="lec_05_dfa.html#k:109"><span class="id" title="variable">k</span></a> <span class="id" title="notation">&lt;=</span> <span class="id" title="definition">size</span> <a class="idref" href="lec_05_dfa.html#y:111"><span class="id" title="variable">y</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#ba2b0e492d2b4675a0acf3ea92aabadd"><span class="id" title="notation">/\</span></a> <a class="idref" href="lec_05_dfa.html#L:108"><span class="id" title="variable">L</span></a> (<a class="idref" href="lec_05_dfa.html#x:110"><span class="id" title="variable">x</span></a> <span class="id" title="notation">++</span> <a class="idref" href="lec_05_dfa.html#y:111"><span class="id" title="variable">y</span></a> <span class="id" title="notation">++</span> <a class="idref" href="lec_05_dfa.html#z:112"><span class="id" title="variable">z</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#ba2b0e492d2b4675a0acf3ea92aabadd"><span class="id" title="notation">/\</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#ba2b0e492d2b4675a0acf3ea92aabadd"><span class="id" title="notation">(</span></a><span class="id" title="keyword">forall</span> <a id="u:113" class="idref" href="#u:113"><span class="id" title="binder">u</span></a> <a id="v:114" class="idref" href="#v:114"><span class="id" title="binder">v</span></a> <a id="w:115" class="idref" href="#w:115"><span class="id" title="binder">w</span></a>, <a class="idref" href="lec_05_dfa.html#y:111"><span class="id" title="variable">y</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="lec_05_dfa.html#u:113"><span class="id" title="variable">u</span></a> <span class="id" title="notation">++</span> <a class="idref" href="lec_05_dfa.html#v:114"><span class="id" title="variable">v</span></a> <span class="id" title="notation">++</span> <a class="idref" href="lec_05_dfa.html#w:115"><span class="id" title="variable">w</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#b3ebd0deddd84fd60e149cb5ef719351"><span class="id" title="notation">~~</span></a> <span class="id" title="definition">nilp</span> <a class="idref" href="lec_05_dfa.html#v:114"><span class="id" title="variable">v</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">exists</span></a> <a id="i:116" class="idref" href="#i:116"><span class="id" title="binder">i</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">,</span></a> <a class="idref" href="lec_05_dfa.html#L:108"><span class="id" title="variable">L</span></a> (<a class="idref" href="lec_05_dfa.html#x:110"><span class="id" title="variable">x</span></a> <span class="id" title="notation">++</span> <a class="idref" href="lec_05_dfa.html#u:113"><span class="id" title="variable">u</span></a> <span class="id" title="notation">++</span> <a class="idref" href="lec_05_dfa.html#rep"><span class="id" title="definition">rep</span></a> <a class="idref" href="lec_05_dfa.html#v:114"><span class="id" title="variable">v</span></a> <a class="idref" href="lec_05_dfa.html#i:116"><span class="id" title="variable">i</span></a> <span class="id" title="notation">++</span> <a class="idref" href="lec_05_dfa.html#w:115"><span class="id" title="variable">w</span></a> <span class="id" title="notation">++</span> <a class="idref" href="lec_05_dfa.html#z:112"><span class="id" title="variable">z</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#False"><span class="id" title="inductive">False</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#ba2b0e492d2b4675a0acf3ea92aabadd"><span class="id" title="notation">)</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">)</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#63a68285c81db8f9bc456233bb9ed181"><span class="id" title="notation">~</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#inhabited"><span class="id" title="inductive">inhabited</span></a> (<a class="idref" href="lec_05_dfa.html#regular"><span class="id" title="definition">regular</span></a> <a class="idref" href="lec_05_dfa.html#L:108"><span class="id" title="variable">L</span></a>).<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">move</span> =&gt; <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">move</span> =&gt; [[<span class="id" title="var">A</span> <span class="id" title="var">LA</span>]].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">move</span>/(<span class="id" title="var">_</span> <span class="id" title="notation">#|</span><span class="id" title="var">A</span><span class="id" title="notation">|</span><span class="id" title="notation">.+1</span>) : <span class="id" title="var">H</span> =&gt; [<span class="id" title="var">x</span>] [<span class="id" title="var">y</span>] [<span class="id" title="var">z</span>] [<span class="id" title="var">size_y</span> [/<span class="id" title="var">LA</span> <span class="id" title="var">Lxyz</span>]].<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Interesting&nbsp;step:&nbsp;witness&nbsp;using&nbsp;the&nbsp;DFA&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">move</span>: (<a class="idref" href="lec_05_dfa.html#pump_dfa"><span class="id" title="lemma">pump_dfa</span></a> <span class="id" title="var">Lxyz</span> <span class="id" title="var">size_y</span>) =&gt; [<span class="id" title="var">u</span>] [<span class="id" title="var">v</span>] [<span class="id" title="var">w</span>] [<span class="id" title="var">Hn</span> <span class="id" title="var">Hy</span> <span class="id" title="var">Hv</span>] /(<span class="id" title="var">_</span> <span class="id" title="var">u</span> <span class="id" title="var">v</span> <span class="id" title="var">w</span> <span class="id" title="var">Hy</span> <span class="id" title="var">Hn</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">move</span> =&gt; [<span class="id" title="var">i</span>].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">exact</span> /<span class="id" title="var">LA</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Lemma</span> <a id="cat_nseq_eq" class="idref" href="#cat_nseq_eq"><span class="id" title="lemma">cat_nseq_eq</span></a> <a id="n1:117" class="idref" href="#n1:117"><span class="id" title="binder">n1</span></a> <a id="n2:118" class="idref" href="#n2:118"><span class="id" title="binder">n2</span></a> (<a id="a:119" class="idref" href="#a:119"><span class="id" title="binder">a</span></a> : <a class="idref" href="lec_05_dfa.html#Pumping.char"><span class="id" title="variable">char</span></a>) :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="definition">nseq</span> <a class="idref" href="lec_05_dfa.html#n1:117"><span class="id" title="variable">n1</span></a> <a class="idref" href="lec_05_dfa.html#a:119"><span class="id" title="variable">a</span></a> <span class="id" title="notation">++</span> <span class="id" title="definition">nseq</span> <a class="idref" href="lec_05_dfa.html#n2:118"><span class="id" title="variable">n2</span></a> <a class="idref" href="lec_05_dfa.html#a:119"><span class="id" title="variable">a</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <span class="id" title="definition">nseq</span> (<a class="idref" href="lec_05_dfa.html#n1:117"><span class="id" title="variable">n1</span></a><span class="id" title="notation">+</span><a class="idref" href="lec_05_dfa.html#n2:118"><span class="id" title="variable">n2</span></a>) <a class="idref" href="lec_05_dfa.html#a:119"><span class="id" title="variable">a</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">elim</span>: <span class="id" title="var">n1</span> =&gt; [|<span class="id" title="var">n1</span> <span class="id" title="var">IHn1</span>] //=.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">by</span> <span class="id" title="tactic">rewrite</span> -<span class="id" title="lemma">cat1s</span> <span class="id" title="var">IHn1</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab36"></a><h3 class="section">Exercise</h3>
+
+
+<div class="paragraph"> </div>
+
+     Try to figure out how to use the pumping lemma to show that
+     the language of a^nb^n is not regular before diving into this proof.
+   
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Example</span> <a id="pump_Lab" class="idref" href="#pump_Lab"><span class="id" title="definition">pump_Lab</span></a> (<a id="a:120" class="idref" href="#a:120"><span class="id" title="binder">a</span></a> <a id="b:121" class="idref" href="#b:121"><span class="id" title="binder">b</span></a> : <a class="idref" href="lec_05_dfa.html#Pumping.char"><span class="id" title="variable">char</span></a>) : <a class="idref" href="lec_05_dfa.html#a:120"><span class="id" title="variable">a</span></a> <span class="id" title="notation">!=</span> <a class="idref" href="lec_05_dfa.html#b:121"><span class="id" title="variable">b</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#63a68285c81db8f9bc456233bb9ed181"><span class="id" title="notation">~</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#inhabited"><span class="id" title="inductive">inhabited</span></a> (<a class="idref" href="lec_05_dfa.html#regular"><span class="id" title="definition">regular</span></a> (<a class="idref" href="lec_05_dfa.html#Lab"><span class="id" title="definition">Lab</span></a> <a class="idref" href="lec_05_dfa.html#a:120"><span class="id" title="variable">a</span></a> <a class="idref" href="lec_05_dfa.html#b:121"><span class="id" title="variable">b</span></a>)).<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">move</span> =&gt; <span class="id" title="var">neq</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span>: <a class="idref" href="lec_05_dfa.html#pumping"><span class="id" title="lemma">pumping</span></a> =&gt; <span class="id" title="var">k</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">exists</span> <span class="id" title="notation">[::]</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">exists</span> (<span class="id" title="definition">nseq</span> <span class="id" title="var">k</span> <span class="id" title="var">a</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">exists</span> (<span class="id" title="definition">nseq</span> <span class="id" title="var">k</span> <span class="id" title="var">b</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">repeat</span> <span class="id" title="tactic">split</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="comment">(*&nbsp;k&nbsp;&lt;=&nbsp;size&nbsp;(nseq&nbsp;k&nbsp;a)&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">by</span> <span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">size_nseq</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="comment">(*&nbsp;Lab&nbsp;a&nbsp;b&nbsp;(<span class="inlinecode">::</span>&nbsp;++&nbsp;nseq&nbsp;k&nbsp;a&nbsp;++&nbsp;nseq&nbsp;k&nbsp;b)&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">by</span> <span class="id" title="tactic">exists</span> <span class="id" title="var">k</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="comment">(*&nbsp;forall&nbsp;u&nbsp;v&nbsp;w&nbsp;:&nbsp;seq&nbsp;char,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nseq&nbsp;k&nbsp;a&nbsp;=&nbsp;u&nbsp;++&nbsp;v&nbsp;++&nbsp;w&nbsp;-&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~~&nbsp;nilp&nbsp;v&nbsp;-&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;exists&nbsp;i&nbsp;:&nbsp;nat,&nbsp;Lab&nbsp;a&nbsp;b&nbsp;(<span class="inlinecode">::</span>&nbsp;++&nbsp;u&nbsp;++&nbsp;rep&nbsp;v&nbsp;i&nbsp;++&nbsp;w&nbsp;++&nbsp;nseq&nbsp;k&nbsp;b)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&gt;&nbsp;False&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">move</span> =&gt; <span class="id" title="var">u</span> [|<span class="id" title="var">c</span> <span class="id" title="var">v</span>] <span class="id" title="var">w</span> // /<span class="id" title="lemma">eqP</span> <span class="id" title="var">e</span> <span class="id" title="var">_</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">exists</span> 0 =&gt; /= <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">have</span> <span class="id" title="var">Hk</span>: <span class="id" title="var">k</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <span class="id" title="definition">size</span> (<span class="id" title="var">u</span> <span class="id" title="notation">++</span> <span class="id" title="notation">(</span><span class="id" title="var">c</span><span class="id" title="notation">::</span><span class="id" title="var">v</span><span class="id" title="notation">)</span> <span class="id" title="notation">++</span> <span class="id" title="var">w</span>) <span class="id" title="tactic">by</span> <span class="id" title="tactic">rewrite</span> -[<span class="id" title="var">k</span>](@<span class="id" title="lemma">size_nseq</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">a</span>) (<span class="id" title="lemma">eqP</span> <span class="id" title="var">e</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="var">Hk</span> !<span class="id" title="lemma">size_cat</span> -!<a class="idref" href="lec_05_dfa.html#cat_nseq_eq"><span class="id" title="lemma">cat_nseq_eq</span></a> !<span class="id" title="lemma">eqseq_cat</span> ?<span class="id" title="lemma">size_nseq</span> // <span class="id" title="tactic">in</span> <span class="id" title="var">e</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">case</span>/<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.ssr.ssrbool.html#and3P"><span class="id" title="lemma">and3P</span></a> : <span class="id" title="var">e</span> =&gt; [/<span class="id" title="lemma">eqP</span> <span class="id" title="var">Hu</span> /<span class="id" title="lemma">eqP</span> <span class="id" title="var">Hv</span> /<span class="id" title="lemma">eqP</span> <span class="id" title="var">Hw</span>].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> -<span class="id" title="var">Hu</span> -<span class="id" title="var">Hw</span> <span class="id" title="lemma">catA</span> <a class="idref" href="lec_05_dfa.html#cat_nseq_eq"><span class="id" title="lemma">cat_nseq_eq</span></a> <span class="id" title="tactic">in</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">move</span>/(<a class="idref" href="lec_05_dfa.html#Lab_eq"><span class="id" title="lemma">Lab_eq</span></a> <span class="id" title="var">neq</span>) : <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">move</span>/<span class="id" title="lemma">eqP</span>. <span class="id" title="tactic">by</span> <span class="id" title="tactic">rewrite</span> <span class="id" title="var">Hk</span> !<span class="id" title="lemma">size_cat</span> <span class="id" title="lemma">eqn_add2l</span> -{1}[<span class="id" title="definition">size</span> <span class="id" title="var">w</span>]<span class="id" title="lemma">add0n</span> <span class="id" title="lemma">eqn_add2r</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="lec_05_dfa.html#Pumping"><span class="id" title="section">Pumping</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab37"></a><h2 class="section">Summary</h2>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> We introduceed deterministic finite automata (DFA) as an
+     abstract machine.
+
+</li>
+<li> In particular, we saw that the DFA transition function was
+     a small-step semantics.
+
+</li>
+<li> We saw that DFAs recognize regular languages and that non-regular
+     languages exists via the pumping lemma.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+</div>
+</div>
+
+<div id="footer">
+<hr/><a href="index.html">Index</a><hr/>This page has been generated by <a href="http://coq.inria.fr/">coqdoc</a>
+</div>
+
+</div>
+
+</body>
+</html>

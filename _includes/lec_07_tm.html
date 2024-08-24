@@ -1,0 +1,2377 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<title>lec_07_tm</title>
+</head>
+
+<body>
+
+<div id="page">
+
+<div id="header">
+</div>
+
+<div id="main">
+
+<h1 class="libtitle">Library lec_07_tm</h1>
+
+<div class="code">
+</div>
+
+<div class="doc">
+<a id="lab1"></a><h1 class="section">Turing Machines and Decidability</h1>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Add</span> <span class="id" title="var">LoadPath</span> "./cook-levin/coq-library-undecidability/theories/" <span class="id" title="keyword">as</span> <span class="id" title="var">Undecidability</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">Undecidability.Shared.Libs.PSL.FiniteTypes.FinTypes</span>.<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Vectors.Vector.html#"><span class="id" title="library">Vector</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Lists.List.html#"><span class="id" title="library">List</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Unset Implicit Arguments</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab2"></a><h2 class="section">References</h2>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Asperti &amp; Ricciotti's "A formalization of multi-tape Turing machines" (2015)
+
+</li>
+<li> https://uds-psl.github.io/cook-levin/
+
+</li>
+<li> https://github.com/bmsherman/finite/blob/master/Iso.v
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+ 
+<div class="paragraph"> </div>
+
+<a id="lab3"></a><h2 class="section">Recap</h2>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Last time, we saw the simplest abstraction machine: the DFA.
+
+</li>
+<li> We also saw that DFAs recognized regular languages and that
+     non-regular languages exist.
+
+</li>
+<li> This begs the question: what would a more powerful machine look
+     like?
+
+</li>
+<li> Today, we'll see that this more powerful, and in fact, <i>universal</i>
+     machine is the <i>Turing machine</i>.
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab4"></a><h2 class="section">Goal for today</h2>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> We'll introduce Turing machines (TMs) and give big-step semantics.
+
+</li>
+<li> We'll show that this notion of computation is robust.
+
+</li>
+<li> We'll introduce the Universal Turing Machine (UTM) + Church-Turing Thesis.
+
+</li>
+<li> We'll introduce the proof techniques of <i>diagonalization</i> and <i>reduction</i>.
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab5"></a><h2 class="section">Machine vs. Language</h2>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Machine view:
+<ul class="doclist">
+<li> deterministic finite automata (DFA)
+
+</li>
+<li> non-deterministic finite automata (NFA)
+
+</li>
+<li> epsilon non-deterministic finite automata (eNFA)
+
+</li>
+</ul>
+
+</li>
+<li> Language view:
+<ul class="doclist">
+<li> regular expressions (REs)
+
+<div class="paragraph"> </div>
+
+
+</li>
+</ul>
+
+</li>
+<li> The machine (or language) recognize subsets of words from an alphabet Σ.
+
+</li>
+<li> That is, they compute functions f:  Σ^* -&gt; {true, false}
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab6"></a><h1 class="section">Why all these machines?</h1>
+
+
+<div class="paragraph"> </div>
+
+   |----&gt; RE -----|   (structural induction on RE, epsilon useful for * and concat)
+   |              |
+   |              v
+   |    NFA &lt;-&gt; eNFA  (embed/epsilon-closure)
+   |     ^
+   |     |  (embed/powerset)
+   |     v
+   |---&gt;DFA
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> RE -&gt; eNFA (structural induction on RE, epsilon useful for * and concat)
+
+</li>
+<li> NFA &lt;-&gt; eNFA
+    * NFA -&gt; eNFA: embed
+    * eNFA -&gt; NFA: epsilon-closure
+
+</li>
+<li> NFA &lt;-&gt; DFA
+    * DFA -&gt; NFA: embed
+    * NFA -&gt; DFA: powerset
+
+</li>
+<li> DFA -&gt; RE
+    * Challenge: we didn't cover this in lecture.
+    * What would you induct on?
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab7"></a><h3 class="section">Why finite automata?</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Good first setting to look into computation where everything is finite.
+
+</li>
+<li> As a reminder, both RE and DFA/NFA compute f: Σ^* -&gt; {true, false}.
+
+</li>
+<li> We identified the languages recognized by RE/DFA/NFA as the <i>regular languages</i>.
+
+</li>
+<li> In our formalization we defined a regular language as those for which a
+     DFA recognizes a word in that language.
+
+</li>
+<li> Based on our characterization, a language is regular iff it is
+     recognized by a RE, hence the name regular language.
+
+</li>
+<li> As we saw with the *pumping lemma*, there are non-regular languages.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+ 
+<div class="paragraph"> </div>
+
+<a id="lab8"></a><h3 class="section">Where to next?</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Today, we'll expand our notion of computation by introducing a new machine,
+     the Turing Machine (TM).
+
+</li>
+<li> We'll see that TMs compute functions <span class="inlinecode"><span class="id" title="var">f</span>:</span> <span class="inlinecode"><span class="id" title="var">Σ</span>^*</span> <span class="inlinecode">-&gt;</span> <span class="inlinecode"><span class="id" title="var">Option</span></span> <span class="inlinecode">{<span class="id" title="var">true</span>,</span> <span class="inlinecode"><span class="id" title="var">false</span>}</span>.
+
+</li>
+<li> As with RE/DFA, we might wonder:
+     * What languages are recognized by TMs? These will be called <i>decidable</i>.
+     * Following up, are there things TMs cannot do? Yes, we will see that a
+       TM cannot decide the <i>halting</i> problem. We will need to introduce a
+       <i>diagonlization technique</i> to prove this. It is essentially the
+       infinite version of the <i>pigeon-hole principle</i>.
+     * How large is the set of problems that a TM cannot solve? It turns out
+       there are an (uncountably) infinite number of them.
+     * Can we weaken the notion of decidability? Yes, we can go with
+       <i>semi-decidable</i> languages. These are functions <span class="inlinecode"><span class="id" title="var">f</span>:</span> <span class="inlinecode"><span class="id" title="var">Σ</span>^*</span> <span class="inlinecode">-&gt;</span> <span class="inlinecode"><span class="id" title="var">Option</span></span> <span class="inlinecode">{<span class="id" title="var">true</span>}</span>.
+       (For those of you interested in topology, Option {true} is
+       the Sierpinski space.)
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab9"></a><h2 class="section">Turing Machines</h2>
+
+<div class="paragraph"> </div>
+
+<a id="lab10"></a><h3 class="section">What was missing from a DFA?</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> A DFA could only <i>read</i> from state.
+
+</li>
+<li> We now need to create a machine that can <i>write</i> to state.
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab11"></a><h3 class="section">Scratchpads, aka, Tapes</h3>
+
+<div class="paragraph"> </div>
+
+<a id="lab12"></a><h4 class="section">Formalizing "writing" to a scratchpad</h4>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> How would we formalize writing to a scratchpad for the purposes
+     of proving stuff about it?
+
+</li>
+<li> Strategy we will take: make it as simple and primitive as possible.
+
+</li>
+<li> Why? Simplicity means less cases to prove.
+
+</li>
+<li> The downside: to actually use the scratchpad will take a lot of work.
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab13"></a><h4 class="section">Tapes and Heads: a formal scratchpad</h4>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Imagine you have a list of cells called a *tape* and a pointer to the
+     current location called a *head*
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_________<br/>
+&nbsp;&nbsp;tape&nbsp;&nbsp;|_|_|_|_|...<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;^<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;head<br/>
+&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;The&nbsp;tape&nbsp;+&nbsp;head&nbsp;will&nbsp;be&nbsp;our&nbsp;scratchpad.<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+<span class="id" title="keyword">Record</span> <a id="ScratchPad" class="idref" href="#ScratchPad"><span class="id" title="record">ScratchPad</span></a> :=<br/>
+&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a id="sp_tape" class="idref" href="#sp_tape"><span class="id" title="projection">sp_tape</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">bool</span></a>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a id="sp_head" class="idref" href="#sp_head"><span class="id" title="projection">sp_head</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>;<br/>
+&nbsp;&nbsp;}.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab14"></a><h4 class="section">Formalization?</h4>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> For the purposes of paper-pencil proofs, this is fine.
+
+</li>
+<li> But for proving stuff formally, we have a lot of invariants to take care of.
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Can read, but we are not always guaranteed to get a symbol out.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="read" class="idref" href="#read"><span class="id" title="definition">read</span></a> (<a id="sp:4" class="idref" href="#sp:4"><span class="id" title="binder">sp</span></a>: <a class="idref" href="lec_07_tm.html#ScratchPad"><span class="id" title="record">ScratchPad</span></a>): <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#option"><span class="id" title="inductive">option</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">bool</span></a> :=<br/>
+&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Lists.List.html#nth_error"><span class="id" title="definition">List.nth_error</span></a> (<a class="idref" href="lec_07_tm.html#sp_tape"><span class="id" title="projection">sp_tape</span></a> <a class="idref" href="lec_07_tm.html#sp:4"><span class="id" title="variable">sp</span></a>) (<a class="idref" href="lec_07_tm.html#sp_head"><span class="id" title="projection">sp_head</span></a> <a class="idref" href="lec_07_tm.html#sp:4"><span class="id" title="variable">sp</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> How will we implement write?
+
+</li>
+<li> Suppose we want to write to a place that doesn't exist?
+
+</li>
+<li> Then we need to extend the list.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+<a id="lab15"></a><h4 class="section">Tapes and Heads: take two</h4>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> From Asperti &amp; Ricciotti's "A formalization of multi-tape
+     Turing machines" (2015) and the accompanying Matita code.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Section</span> <a id="SCRATCHPAD" class="idref" href="#SCRATCHPAD"><span class="id" title="section">SCRATCHPAD</span></a>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="comment">(*&nbsp;The&nbsp;alphabet&nbsp;type&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Variable</span> <a id="967143d31ed10a4280f4108ea369547f" class="idref" href="#967143d31ed10a4280f4108ea369547f"><span class="id" title="variable">Σ</span></a> : <span class="id" title="keyword">Type</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab16"></a><h4 class="section">Tapes</h4>
+
+
+<div class="paragraph"> </div>
+
+     Tapes are either
+<ul class="doclist">
+<li> empty (niltape),
+
+</li>
+<li> non-empty with the head to the left of the content (leftof),
+
+</li>
+<li> non-empty with the head to the right of the content (rightof),
+
+</li>
+<li> or non-empty with the head on the content (midtape).
+
+<div class="paragraph"> </div>
+
+
+</li>
+<li> Blank symbols need to be part of the alphabet.
+
+</li>
+<li> This enables a unique representation of the tape.
+
+</li>
+</ul>
+   
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Inductive</span> <a id="tape" class="idref" href="#tape"><span class="id" title="inductive">tape</span></a> : <span class="id" title="keyword">Type</span> :=<br/>
+&nbsp;&nbsp;| <a id="niltape" class="idref" href="#niltape"><span class="id" title="constructor">niltape</span></a> : <a class="idref" href="lec_07_tm.html#tape:6"><span class="id" title="inductive">tape</span></a><br/>
+&nbsp;&nbsp;| <a id="leftof" class="idref" href="#leftof"><span class="id" title="constructor">leftof</span></a> : <a class="idref" href="lec_07_tm.html#967143d31ed10a4280f4108ea369547f"><span class="id" title="variable">Σ</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="lec_07_tm.html#967143d31ed10a4280f4108ea369547f"><span class="id" title="variable">Σ</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_07_tm.html#tape:6"><span class="id" title="inductive">tape</span></a><br/>
+&nbsp;&nbsp;| <a id="rightof" class="idref" href="#rightof"><span class="id" title="constructor">rightof</span></a> : <a class="idref" href="lec_07_tm.html#967143d31ed10a4280f4108ea369547f"><span class="id" title="variable">Σ</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="lec_07_tm.html#967143d31ed10a4280f4108ea369547f"><span class="id" title="variable">Σ</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_07_tm.html#tape:6"><span class="id" title="inductive">tape</span></a><br/>
+&nbsp;&nbsp;| <a id="midtape" class="idref" href="#midtape"><span class="id" title="constructor">midtape</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="lec_07_tm.html#967143d31ed10a4280f4108ea369547f"><span class="id" title="variable">Σ</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_07_tm.html#967143d31ed10a4280f4108ea369547f"><span class="id" title="variable">Σ</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="lec_07_tm.html#967143d31ed10a4280f4108ea369547f"><span class="id" title="variable">Σ</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_07_tm.html#tape:6"><span class="id" title="inductive">tape</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab17"></a><h4 class="section">Reading</h4>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> The current function returns the current symbol, if there is one.
+
+</li>
+<li> If None is returned, this means that the head is on a part of the tape
+        which has never been written before. Remember, blank symbols are part of
+        the alphabet.
+
+</li>
+</ul>
+   
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="current" class="idref" href="#current"><span class="id" title="definition">current</span></a> (<a id="t:8" class="idref" href="#t:8"><span class="id" title="binder">t</span></a> : <a class="idref" href="lec_07_tm.html#tape"><span class="id" title="inductive">tape</span></a>) : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#option"><span class="id" title="inductive">option</span></a> <a class="idref" href="lec_07_tm.html#967143d31ed10a4280f4108ea369547f"><span class="id" title="variable">Σ</span></a> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="lec_07_tm.html#t:8"><span class="id" title="variable">t</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="lec_07_tm.html#midtape"><span class="id" title="constructor">midtape</span></a> <span class="id" title="var">_</span> <span class="id" title="var">a</span> <span class="id" title="var">_</span> =&gt; <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <span class="id" title="var">a</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#None"><span class="id" title="constructor">None</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab18"></a><h4 class="section">Moving</h4>
+
+<ul class="doclist">
+<li> Can move left, right, or do nothing.
+
+</li>
+</ul>
+   
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Inductive</span> <a id="move" class="idref" href="#move"><span class="id" title="inductive">move</span></a> : <span class="id" title="keyword">Type</span> :=<br/>
+&nbsp;&nbsp;| <a id="Lmove" class="idref" href="#Lmove"><span class="id" title="constructor">Lmove</span></a> : <a class="idref" href="lec_07_tm.html#move:10"><span class="id" title="inductive">move</span></a><br/>
+&nbsp;&nbsp;| <a id="Rmove" class="idref" href="#Rmove"><span class="id" title="constructor">Rmove</span></a> : <a class="idref" href="lec_07_tm.html#move:10"><span class="id" title="inductive">move</span></a><br/>
+&nbsp;&nbsp;| <a id="Nmove" class="idref" href="#Nmove"><span class="id" title="constructor">Nmove</span></a> : <a class="idref" href="lec_07_tm.html#move:10"><span class="id" title="inductive">move</span></a>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="mv" class="idref" href="#mv"><span class="id" title="definition">mv</span></a> (<a id="m:12" class="idref" href="#m:12"><span class="id" title="binder">m</span></a> : <a class="idref" href="lec_07_tm.html#move"><span class="id" title="inductive">move</span></a>) (<a id="t:13" class="idref" href="#t:13"><span class="id" title="binder">t</span></a> : <a class="idref" href="lec_07_tm.html#tape"><span class="id" title="inductive">tape</span></a>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="lec_07_tm.html#m:12"><span class="id" title="variable">m</span></a>, <a class="idref" href="lec_07_tm.html#t:13"><span class="id" title="variable">t</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="lec_07_tm.html#Lmove"><span class="id" title="constructor">Lmove</span></a>, <a class="idref" href="lec_07_tm.html#rightof"><span class="id" title="constructor">rightof</span></a> <span class="id" title="var">l</span> <span class="id" title="var">ls</span> =&gt; <a class="idref" href="lec_07_tm.html#midtape"><span class="id" title="constructor">midtape</span></a> <span class="id" title="var">ls</span> <span class="id" title="var">l</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Lists.List.html#nil"><span class="id" title="abbreviation">nil</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="lec_07_tm.html#Lmove"><span class="id" title="constructor">Lmove</span></a>, <a class="idref" href="lec_07_tm.html#midtape"><span class="id" title="constructor">midtape</span></a> <span class="id" title="var">nil</span> <span class="id" title="var">m</span> <span class="id" title="var">rs</span> =&gt; <a class="idref" href="lec_07_tm.html#leftof"><span class="id" title="constructor">leftof</span></a> <a class="idref" href="lec_07_tm.html#m:12"><span class="id" title="variable">m</span></a> <span class="id" title="var">rs</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="lec_07_tm.html#Lmove"><span class="id" title="constructor">Lmove</span></a>, <a class="idref" href="lec_07_tm.html#midtape"><span class="id" title="constructor">midtape</span></a> (<span class="id" title="var">l</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#::list_scope:x_'::'_x"><span class="id" title="notation">::</span></a> <span class="id" title="var">ls</span>) <span class="id" title="var">m</span> <span class="id" title="var">rs</span> =&gt; <a class="idref" href="lec_07_tm.html#midtape"><span class="id" title="constructor">midtape</span></a> <span class="id" title="var">ls</span> <span class="id" title="var">l</span> (<a class="idref" href="lec_07_tm.html#m:12"><span class="id" title="variable">m</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#::list_scope:x_'::'_x"><span class="id" title="notation">::</span></a> <span class="id" title="var">rs</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="lec_07_tm.html#Rmove"><span class="id" title="constructor">Rmove</span></a>, <a class="idref" href="lec_07_tm.html#leftof"><span class="id" title="constructor">leftof</span></a> <span class="id" title="var">r</span> <span class="id" title="var">rs</span> =&gt; <a class="idref" href="lec_07_tm.html#midtape"><span class="id" title="constructor">midtape</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Lists.List.html#nil"><span class="id" title="abbreviation">nil</span></a> <span class="id" title="var">r</span> <span class="id" title="var">rs</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="lec_07_tm.html#Rmove"><span class="id" title="constructor">Rmove</span></a>, <a class="idref" href="lec_07_tm.html#midtape"><span class="id" title="constructor">midtape</span></a> <span class="id" title="var">ls</span> <span class="id" title="var">m</span> <span class="id" title="var">nil</span> =&gt; <a class="idref" href="lec_07_tm.html#rightof"><span class="id" title="constructor">rightof</span></a> <a class="idref" href="lec_07_tm.html#m:12"><span class="id" title="variable">m</span></a> <span class="id" title="var">ls</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="lec_07_tm.html#Rmove"><span class="id" title="constructor">Rmove</span></a>, <a class="idref" href="lec_07_tm.html#midtape"><span class="id" title="constructor">midtape</span></a> <span class="id" title="var">ls</span> <span class="id" title="var">m</span> (<span class="id" title="var">r</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#::list_scope:x_'::'_x"><span class="id" title="notation">::</span></a> <span class="id" title="var">rs</span>) =&gt; <a class="idref" href="lec_07_tm.html#midtape"><span class="id" title="constructor">midtape</span></a> (<a class="idref" href="lec_07_tm.html#m:12"><span class="id" title="variable">m</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#::list_scope:x_'::'_x"><span class="id" title="notation">::</span></a> <span class="id" title="var">ls</span>) <span class="id" title="var">r</span> <span class="id" title="var">rs</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <span class="id" title="var">_</span> =&gt; <a class="idref" href="lec_07_tm.html#t:13"><span class="id" title="variable">t</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab19"></a><h4 class="section">Writing</h4>
+
+<ul class="doclist">
+<li> Optionally write s to the tape t.
+
+</li>
+<li> We need an option because we might want to write nothing to the tape.
+
+</li>
+</ul>
+   
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="wr" class="idref" href="#wr"><span class="id" title="definition">wr</span></a> (<a id="s:16" class="idref" href="#s:16"><span class="id" title="binder">s</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#option"><span class="id" title="inductive">option</span></a> <a class="idref" href="lec_07_tm.html#967143d31ed10a4280f4108ea369547f"><span class="id" title="variable">Σ</span></a>) (<a id="t:17" class="idref" href="#t:17"><span class="id" title="binder">t</span></a> : <a class="idref" href="lec_07_tm.html#tape"><span class="id" title="inductive">tape</span></a>) : <a class="idref" href="lec_07_tm.html#tape"><span class="id" title="inductive">tape</span></a> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="lec_07_tm.html#s:16"><span class="id" title="variable">s</span></a>, <a class="idref" href="lec_07_tm.html#t:17"><span class="id" title="variable">t</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#None"><span class="id" title="constructor">None</span></a>, <span class="id" title="var">t</span> =&gt; <a class="idref" href="lec_07_tm.html#t:17"><span class="id" title="variable">t</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <span class="id" title="var">a</span>, <a class="idref" href="lec_07_tm.html#niltape"><span class="id" title="constructor">niltape</span></a> =&gt; <a class="idref" href="lec_07_tm.html#midtape"><span class="id" title="constructor">midtape</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Lists.List.html#nil"><span class="id" title="abbreviation">nil</span></a> <span class="id" title="var">a</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Lists.List.html#nil"><span class="id" title="abbreviation">nil</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <span class="id" title="var">a</span>, <a class="idref" href="lec_07_tm.html#leftof"><span class="id" title="constructor">leftof</span></a> <span class="id" title="var">r</span> <span class="id" title="var">rs</span> =&gt; <a class="idref" href="lec_07_tm.html#midtape"><span class="id" title="constructor">midtape</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Lists.List.html#nil"><span class="id" title="abbreviation">nil</span></a> <span class="id" title="var">a</span> (<span class="id" title="var">r</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#::list_scope:x_'::'_x"><span class="id" title="notation">::</span></a> <span class="id" title="var">rs</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <span class="id" title="var">a</span>, <a class="idref" href="lec_07_tm.html#midtape"><span class="id" title="constructor">midtape</span></a> <span class="id" title="var">ls</span> <span class="id" title="var">b</span> <span class="id" title="var">rs</span> =&gt; <a class="idref" href="lec_07_tm.html#midtape"><span class="id" title="constructor">midtape</span></a> <span class="id" title="var">ls</span> <span class="id" title="var">a</span> <span class="id" title="var">rs</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <span class="id" title="var">a</span>, <a class="idref" href="lec_07_tm.html#rightof"><span class="id" title="constructor">rightof</span></a> <span class="id" title="var">l</span> <span class="id" title="var">ls</span> =&gt; <a class="idref" href="lec_07_tm.html#midtape"><span class="id" title="constructor">midtape</span></a> (<span class="id" title="var">l</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#::list_scope:x_'::'_x"><span class="id" title="notation">::</span></a> <span class="id" title="var">ls</span>) <span class="id" title="var">a</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Lists.List.html#nil"><span class="id" title="abbreviation">nil</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab20"></a><h4 class="section">Difference in formalization from pencil-paper 1:</h4>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Moving to the right of the rightof tape is identity.
+
+</li>
+<li> Traditionally we would have an empty cell that would have a blank symbol written to it.
+
+</li>
+</ul>
+   
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Lemma</span> <a id="right_right_identity" class="idref" href="#right_right_identity"><span class="id" title="lemma">right_right_identity</span></a>:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">forall</span> (<a id="x:20" class="idref" href="#x:20"><span class="id" title="binder">x</span></a>: <a class="idref" href="lec_07_tm.html#967143d31ed10a4280f4108ea369547f"><span class="id" title="variable">Σ</span></a>) (<a id="ls:21" class="idref" href="#ls:21"><span class="id" title="binder">ls</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="lec_07_tm.html#967143d31ed10a4280f4108ea369547f"><span class="id" title="variable">Σ</span></a>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_07_tm.html#mv"><span class="id" title="definition">mv</span></a> <a class="idref" href="lec_07_tm.html#Rmove"><span class="id" title="constructor">Rmove</span></a> (<a class="idref" href="lec_07_tm.html#rightof"><span class="id" title="constructor">rightof</span></a> <a class="idref" href="lec_07_tm.html#x:20"><span class="id" title="variable">x</span></a> <a class="idref" href="lec_07_tm.html#ls:21"><span class="id" title="variable">ls</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="lec_07_tm.html#rightof"><span class="id" title="constructor">rightof</span></a> <a class="idref" href="lec_07_tm.html#x:20"><span class="id" title="variable">x</span></a> <a class="idref" href="lec_07_tm.html#ls:21"><span class="id" title="variable">ls</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">intros</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab21"></a><h4 class="section">Difference in formalization from pencil-paper 2:</h4>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Moving to the left and then moving to the right is not the same syntactically.
+
+</li>
+<li> But is semantically in the sense that we the same "contents" on the tape.
+
+</li>
+</ul>
+   
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Lemma</span> <a id="left_then_right_not_same" class="idref" href="#left_then_right_not_same"><span class="id" title="lemma">left_then_right_not_same</span></a>:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">forall</span> (<a id="x:22" class="idref" href="#x:22"><span class="id" title="binder">x</span></a>: <a class="idref" href="lec_07_tm.html#967143d31ed10a4280f4108ea369547f"><span class="id" title="variable">Σ</span></a>) (<a id="ls:23" class="idref" href="#ls:23"><span class="id" title="binder">ls</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="lec_07_tm.html#967143d31ed10a4280f4108ea369547f"><span class="id" title="variable">Σ</span></a>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">exists</span></a> <a id="t:24" class="idref" href="#t:24"><span class="id" title="binder">t</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">,</span></a>      <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_07_tm.html#mv"><span class="id" title="definition">mv</span></a> <a class="idref" href="lec_07_tm.html#Rmove"><span class="id" title="constructor">Rmove</span></a> (<a class="idref" href="lec_07_tm.html#mv"><span class="id" title="definition">mv</span></a> <a class="idref" href="lec_07_tm.html#Lmove"><span class="id" title="constructor">Lmove</span></a> <a class="idref" href="lec_07_tm.html#t:24"><span class="id" title="variable">t</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'&lt;&gt;'_x"><span class="id" title="notation">&lt;&gt;</span></a> <a class="idref" href="lec_07_tm.html#t:24"><span class="id" title="variable">t</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">intros</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">exists</span> (<a class="idref" href="lec_07_tm.html#leftof"><span class="id" title="constructor">leftof</span></a> <span class="id" title="var">x</span> <span class="id" title="var">ls</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">unfold</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#not"><span class="id" title="definition">not</span></a>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">intros</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">inversion</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab22"></a><h4 class="section">Difference in formalization from pencil-paper 2:</h4>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Moving to the left and then moving to the right is not the same syntactically.
+
+</li>
+<li> But is semantically in the sense that we the same "contents" on the tape.
+
+</li>
+</ul>
+   
+<div class="paragraph"> </div>
+
+<a id="lab23"></a><h1 class="section">Summary</h1>
+
+<ul class="doclist">
+<li> We are still talking about scratchpads.
+
+</li>
+<li> But constructing everything so that the induction works out formally
+        requires us to be extremely careful with defining: empty cells and blank symbols.
+
+</li>
+</ul>
+   
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="lec_07_tm.html#SCRATCHPAD"><span class="id" title="section">SCRATCHPAD</span></a>.<br/>
+
+<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="lec_07_tm.html#niltape"><span class="id" title="constructor">niltape</span></a> <span class="id" title="var">_</span>, {<span class="id" title="var">_</span>}.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="lec_07_tm.html#leftof"><span class="id" title="constructor">leftof</span></a> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>, {<span class="id" title="var">_</span>} <span class="id" title="var">_</span> <span class="id" title="var">_</span>.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="lec_07_tm.html#rightof"><span class="id" title="constructor">rightof</span></a> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>, {<span class="id" title="var">_</span>} <span class="id" title="var">_</span> <span class="id" title="var">_</span>.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="lec_07_tm.html#midtape"><span class="id" title="constructor">midtape</span></a> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>, {<span class="id" title="var">_</span>} <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="lec_07_tm.html#current"><span class="id" title="definition">current</span></a> {<span class="id" title="var">_</span>} <span class="id" title="var">_</span>.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="lec_07_tm.html#wr"><span class="id" title="definition">wr</span></a> {<span class="id" title="var">_</span>} <span class="id" title="var">_</span> <span class="id" title="var">_</span>.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="lec_07_tm.html#mv"><span class="id" title="definition">mv</span></a> {<span class="id" title="var">_</span>} <span class="id" title="var">_</span>.<br/>
+
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab24"></a><h3 class="section">Machine Execution</h3>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Section</span> <a id="EXECUTION" class="idref" href="#EXECUTION"><span class="id" title="section">EXECUTION</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> The alphabet is assumed to be finite 
+
+</li>
+</ul>
+   
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" title="keyword">Variable</span> <a id="1449404ae5f29df370be53df320c84b8" class="idref" href="#1449404ae5f29df370be53df320c84b8"><span class="id" title="variable">Σ</span></a> : <span class="id" title="record">finType</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> The number of tapes.
+
+</li>
+<li> Keep this thought for now: does it matter if n = 0, n = 1, or n &gt; 1?
+
+</li>
+</ul>
+   
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" title="keyword">Variable</span> <a id="EXECUTION.n" class="idref" href="#EXECUTION.n"><span class="id" title="variable">n</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Vector is just an array that knows how many elements it has.
+
+</li>
+</ul>
+   
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" title="keyword">Print</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Vectors.Vector.html#t"><span class="id" title="inductive">Vector.t</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Definition of multi-tape Turing machines
+
+</li>
+<li> Remember we are doing this for any n
+
+</li>
+</ul>
+   
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" title="keyword">Record</span> <a id="TM" class="idref" href="#TM"><span class="id" title="record">TM</span></a> : <span class="id" title="keyword">Type</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;type&nbsp;of&nbsp;states&nbsp;of&nbsp;the&nbsp;TM:&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;Note:&nbsp;it&nbsp;is&nbsp;finite!<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a id="state" class="idref" href="#state"><span class="id" title="projection">state</span></a> : <span class="id" title="record">finType</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;transition&nbsp;function:&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a id="trans" class="idref" href="#trans"><span class="id" title="projection">trans</span></a> : <a class="idref" href="lec_07_tm.html#state:28"><span class="id" title="method">state</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">*</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">(</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Vectors.Vector.html#t"><span class="id" title="inductive">Vector.t</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#option"><span class="id" title="inductive">option</span></a> <a class="idref" href="lec_07_tm.html#1449404ae5f29df370be53df320c84b8"><span class="id" title="variable">Σ</span></a>) <a class="idref" href="lec_07_tm.html#EXECUTION.n"><span class="id" title="variable">n</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">)</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_07_tm.html#state:28"><span class="id" title="method">state</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">*</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">(</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Vectors.Vector.html#t"><span class="id" title="inductive">Vector.t</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">(</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#option"><span class="id" title="inductive">option</span></a> <a class="idref" href="lec_07_tm.html#1449404ae5f29df370be53df320c84b8"><span class="id" title="variable">Σ</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">)</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">*</span></a> <a class="idref" href="lec_07_tm.html#move"><span class="id" title="inductive">move</span></a>) <a class="idref" href="lec_07_tm.html#EXECUTION.n"><span class="id" title="variable">n</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">)</span></a>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;start&nbsp;state:&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a id="start" class="idref" href="#start"><span class="id" title="projection">start</span></a>: <a class="idref" href="lec_07_tm.html#state:28"><span class="id" title="method">state</span></a>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;set&nbsp;of&nbsp;final&nbsp;states&nbsp;(note&nbsp;we&nbsp;are&nbsp;going&nbsp;into&nbsp;bool):&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a id="halt" class="idref" href="#halt"><span class="id" title="projection">halt</span></a> : <a class="idref" href="lec_07_tm.html#state:28"><span class="id" title="method">state</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">bool</span></a> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab25"></a><h3 class="section">Evaluation Relation</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Uses the transition function until a halting state is reached.
+
+</li>
+</ul>
+   
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" title="keyword">Inductive</span> <a id="eval" class="idref" href="#eval"><span class="id" title="inductive">eval</span></a> (<a id="M:32" class="idref" href="#M:32"><span class="id" title="binder">M</span></a> : <a class="idref" href="lec_07_tm.html#TM"><span class="id" title="record">TM</span></a>) (<a id="q:33" class="idref" href="#q:33"><span class="id" title="binder">q</span></a> : <a class="idref" href="lec_07_tm.html#state"><span class="id" title="projection">state</span></a> <a class="idref" href="lec_07_tm.html#M:32"><span class="id" title="variable">M</span></a>) (<a id="t:34" class="idref" href="#t:34"><span class="id" title="binder">t</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Vectors.Vector.html#t"><span class="id" title="inductive">Vector.t</span></a> (<a class="idref" href="lec_07_tm.html#tape"><span class="id" title="inductive">tape</span></a> <a class="idref" href="lec_07_tm.html#1449404ae5f29df370be53df320c84b8"><span class="id" title="variable">Σ</span></a>) <a class="idref" href="lec_07_tm.html#EXECUTION.n"><span class="id" title="variable">n</span></a>) : <a class="idref" href="lec_07_tm.html#state"><span class="id" title="projection">state</span></a> <span class="id" title="var">M</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Vectors.Vector.html#t"><span class="id" title="inductive">Vector.t</span></a> (<a class="idref" href="lec_07_tm.html#tape"><span class="id" title="inductive">tape</span></a> <a class="idref" href="lec_07_tm.html#1449404ae5f29df370be53df320c84b8"><span class="id" title="variable">Σ</span></a>) <a class="idref" href="lec_07_tm.html#EXECUTION.n"><span class="id" title="variable">n</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;| <a id="eval_halt" class="idref" href="#eval_halt"><span class="id" title="constructor">eval_halt</span></a> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_07_tm.html#halt"><span class="id" title="projection">halt</span></a> <a class="idref" href="lec_07_tm.html#M:32"><span class="id" title="variable">M</span></a> <a class="idref" href="lec_07_tm.html#q:33"><span class="id" title="variable">q</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#true"><span class="id" title="constructor">true</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_07_tm.html#eval:35"><span class="id" title="inductive">eval</span></a> <a class="idref" href="lec_07_tm.html#M:32"><span class="id" title="variable">M</span></a> <a class="idref" href="lec_07_tm.html#q:33"><span class="id" title="variable">q</span></a> <a class="idref" href="lec_07_tm.html#t:34"><span class="id" title="variable">t</span></a> <a class="idref" href="lec_07_tm.html#q:33"><span class="id" title="variable">q</span></a> <a class="idref" href="lec_07_tm.html#t:34"><span class="id" title="variable">t</span></a><br/>
+&nbsp;&nbsp;| <a id="eval_step" class="idref" href="#eval_step"><span class="id" title="constructor">eval_step</span></a> <a id="q':37" class="idref" href="#q':37"><span class="id" title="binder">q'</span></a> <a id="a:38" class="idref" href="#a:38"><span class="id" title="binder">a</span></a> <a id="q'':39" class="idref" href="#q'':39"><span class="id" title="binder">q''</span></a> <a id="t':40" class="idref" href="#t':40"><span class="id" title="binder">t'</span></a> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_07_tm.html#halt"><span class="id" title="projection">halt</span></a> <a class="idref" href="lec_07_tm.html#M:32"><span class="id" title="variable">M</span></a> <a class="idref" href="lec_07_tm.html#q:33"><span class="id" title="variable">q</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#false"><span class="id" title="constructor">false</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_07_tm.html#trans"><span class="id" title="projection">trans</span></a> <a class="idref" href="lec_07_tm.html#M:32"><span class="id" title="variable">M</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">(</span></a><a class="idref" href="lec_07_tm.html#q:33"><span class="id" title="variable">q</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Vectors.Vector.html#map"><span class="id" title="definition">Vector.map</span></a> <a class="idref" href="lec_07_tm.html#current"><span class="id" title="definition">current</span></a> <a class="idref" href="lec_07_tm.html#t:34"><span class="id" title="variable">t</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">)</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">(</span></a><a class="idref" href="lec_07_tm.html#q':37"><span class="id" title="variable">q'</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a> <a class="idref" href="lec_07_tm.html#a:38"><span class="id" title="variable">a</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">)</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_07_tm.html#eval:35"><span class="id" title="inductive">eval</span></a> <a class="idref" href="lec_07_tm.html#M:32"><span class="id" title="variable">M</span></a> <a class="idref" href="lec_07_tm.html#q':37"><span class="id" title="variable">q'</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Vectors.Vector.html#map2"><span class="id" title="definition">Vector.map2</span></a> (<span class="id" title="keyword">fun</span> <a id="tp:41" class="idref" href="#tp:41"><span class="id" title="binder">tp</span></a> <a id="pat:44" class="idref" href="#pat:44"><span class="id" title="binder">'(</span></a><a id="pat:44" class="idref" href="#pat:44"><span class="id" title="binder">c</span></a><a id="pat:44" class="idref" href="#pat:44"><span class="id" title="binder">,</span></a><a id="pat:44" class="idref" href="#pat:44"><span class="id" title="binder">m</span></a><a id="pat:44" class="idref" href="#pat:44"><span class="id" title="binder">)</span></a> =&gt; <a class="idref" href="lec_07_tm.html#mv"><span class="id" title="definition">mv</span></a> <a class="idref" href="lec_07_tm.html#m:42"><span class="id" title="variable">m</span></a> (<a class="idref" href="lec_07_tm.html#wr"><span class="id" title="definition">wr</span></a> <a class="idref" href="lec_07_tm.html#c:43"><span class="id" title="variable">c</span></a> <a class="idref" href="lec_07_tm.html#tp:41"><span class="id" title="variable">tp</span></a>)) <a class="idref" href="lec_07_tm.html#t:34"><span class="id" title="variable">t</span></a> <a class="idref" href="lec_07_tm.html#a:38"><span class="id" title="variable">a</span></a>) <a class="idref" href="lec_07_tm.html#q'':39"><span class="id" title="variable">q''</span></a> <a class="idref" href="lec_07_tm.html#t':40"><span class="id" title="variable">t'</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_07_tm.html#eval:35"><span class="id" title="inductive">eval</span></a> <a class="idref" href="lec_07_tm.html#M:32"><span class="id" title="variable">M</span></a> <a class="idref" href="lec_07_tm.html#q:33"><span class="id" title="variable">q</span></a> <a class="idref" href="lec_07_tm.html#t:34"><span class="id" title="variable">t</span></a> <a class="idref" href="lec_07_tm.html#q'':39"><span class="id" title="variable">q''</span></a> <a class="idref" href="lec_07_tm.html#t':40"><span class="id" title="variable">t'</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="lec_07_tm.html#EXECUTION"><span class="id" title="section">EXECUTION</span></a>.<br/>
+
+<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="lec_07_tm.html#state"><span class="id" title="projection">state</span></a> {<span class="id" title="var">_</span> <span class="id" title="var">_</span>} <span class="id" title="var">m</span> : <span class="id" title="tactic">rename</span>.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="lec_07_tm.html#trans"><span class="id" title="projection">trans</span></a> {<span class="id" title="var">_</span> <span class="id" title="var">_</span>} <span class="id" title="var">m</span> <span class="id" title="var">_</span>, {<span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">m</span>} <span class="id" title="var">_</span> : <span class="id" title="tactic">rename</span>.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="lec_07_tm.html#start"><span class="id" title="projection">start</span></a> {<span class="id" title="var">_</span> <span class="id" title="var">_</span>} <span class="id" title="var">m</span> : <span class="id" title="tactic">rename</span>.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="lec_07_tm.html#halt"><span class="id" title="projection">halt</span></a> {<span class="id" title="var">_</span> <span class="id" title="var">_</span>} <span class="id" title="var">m</span> <span class="id" title="var">_</span>, {<span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">m</span>} <span class="id" title="var">_</span> : <span class="id" title="tactic">rename</span>.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="lec_07_tm.html#eval"><span class="id" title="inductive">eval</span></a> {<span class="id" title="var">_</span> <span class="id" title="var">_</span>} <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="lec_07_tm.html#Build_TM"><span class="id" title="constructor">Build_TM</span></a> {<span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>} <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab26"></a><h3 class="section">Challenge</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Programming TMs is a pain.
+
+</li>
+<li> Here's a challenge: write a machine that does binary addition on 8 bit numbers
+     where the the first 8 cells of the tape contains the first number and the second
+     8 cells contains the second number.
+
+</li>
+<li> Point: TMs give a good theoretical model for computation but we might want 
+     higher-level languages to program them. The downside is that the computational
+     complexity and cost might be abstracted away.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+<a id="lab27"></a><h2 class="section">Semantics of Turing Machines?</h2>
+
+<div class="paragraph"> </div>
+
+<a id="lab28"></a><h2 class="section">How do we define the semantics of a TM?</h2>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> We saw with DFA/NFA/eNFA that we could define the language that a DFA/NFA/eNFA recognizes.
+
+</li>
+<li> This was the defined to be the semantics of the machine.
+
+</li>
+<li> In particular, the DFA definition gave us a "small-step semantics" for how the
+    machine transitioned and recognized language gave us the meaning of the machine
+    in terms of the function it computed.
+
+</li>
+<li> We cannot define the function that TMs compute directly in Coq because TMs
+    do not necessarily terminate.
+
+</li>
+<li> We will get around this by defining relations on configurations and defining a
+    "big-step" semantics using partial functions.
+
+</li>
+<li> Thankfully this is already done for us.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">Undecidability.TM.Util.TM_facts</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab29"></a><h3 class="section">Configurations</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> A <i>big-step</i> or <i>large-step</i> semantics of a TM will be given
+    in terms of relations on configurations.
+<ul class="doclist">
+<li> We will see that the <i>big-step</i> semantics highlights that TMs define
+    <i>partial computable functions</i>.
+
+</li>
+<li> A <i>configuration</i> stores the state of the TM and the contents of all the tapes.
+
+</li>
+<li> This notion of configuration will also be useful later on when we talk
+    about computation complexity (e.g., in Cook-Levin).
+
+</li>
+</ul>
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Print</span> <span class="id" title="record">mconfig</span>.<br/>
+</div>
+
+<div class="doc">
+<pre>
+Record mconfig (sig state : finType) (n : nat) : Type := mk_mconfig
+  { 
+    cstate : eqType_X state;
+    ctapes : tapes sig n 
+  }
+</pre>
+
+<div class="paragraph"> </div>
+
+<a id="lab30"></a><h3 class="section">Initial Configurations</h3>
+
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Print</span> <span class="id" title="definition">initc</span>.<br/>
+</div>
+
+<div class="doc">
+<pre>
+Definition initc: forall (sig : finType) (n : nat) (M : TM sig n),
+                  tapes sig n -&gt; mconfig sig (state M) n := 
+  fun (sig : finType) (n : nat) (M : TM sig n) (tapes : tapes sig n) =&gt;
+    mk_mconfig (start M) tapes     
+</pre>
+
+<div class="paragraph"> </div>
+
+<a id="lab31"></a><h3 class="section">Halting Configurations</h3>
+
+
+</div>
+<div class="code">
+<span class="id" title="keyword">Print</span> <span class="id" title="definition">haltConf</span>.<br/>
+</div>
+
+<div class="doc">
+<pre>
+Definition haltConf : forall (sig : finType) (n : nat) (M : TM sig n),
+                      mconfig sig (state M) n -&gt; bool := 
+  fun (sig : finType) (n : nat) (M : TM sig n) (c : mconfig sig (state M) n) =&gt;
+    halt (cstate c)
+</pre>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab32"></a><h3 class="section">Stepping</h3>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="comment">(*&nbsp;One&nbsp;Step<br/>
+<br/>
+&nbsp;&nbsp;We&nbsp;need&nbsp;a&nbsp;helper&nbsp;function&nbsp;to&nbsp;go&nbsp;from&nbsp;taking&nbsp;a&nbsp;TM&nbsp;transition&nbsp;to&nbsp;the&nbsp;configuration.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;trans&nbsp;(st1,&nbsp;tp1)&nbsp;=&nbsp;(st2,&nbsp;tp2)<br/>
+&nbsp;&nbsp;&nbsp;---------------------------------&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(st1,&nbsp;tp1)&nbsp;--&gt;&nbsp;(st2,&nbsp;tp2)<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+<span class="id" title="keyword">Print</span> <span class="id" title="definition">step</span>.<br/>
+</div>
+
+<div class="doc">
+<pre>
+Definition step : forall (sig : finType) (n : nat) (M : TM sig n),
+                  mconfig sig (state M) n -&gt; mconfig sig (state M) n := 
+  fun (sig : finType) (n : nat) (M : TM sig n) (c : mconfig sig (state M) n) =&gt;
+    let (news, actions) := trans (cstate c, current_chars (ctapes c)) in
+    mk_mconfig news (doAct_multi (ctapes c) actions).
+</pre>
+
+<div class="paragraph"> </div>
+
+<a id="lab33"></a><h3 class="section">Big-Step semantics: while True</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Remember that Coq only allows terminating functions.
+
+</li>
+<li> How do write while True?
+
+</li>
+<li> We use a common trick: define a loop with a certain amount of "gas".
+
+</li>
+<li> Intuitively, the "gas" counts the number of steps that we take.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;loopM&nbsp;(st1,&nbsp;tp1)&nbsp;n&nbsp;=&nbsp;Some&nbsp;(st2,&nbsp;tp2)<br/>
+&nbsp;&nbsp;&nbsp;---------------------------------------&nbsp;loopM<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(st1,&nbsp;tp1)&nbsp;--&gt;*&nbsp;(st2,&nbsp;tp2)<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+<span class="id" title="keyword">Print</span> <span class="id" title="definition">loopM</span>.<br/>
+</div>
+
+<div class="doc">
+<pre>
+Definition loopM : forall (sig : finType) (n : nat) (M : TM sig n),
+                   mconfig sig (state M) n -&gt; nat -&gt; option (mconfig sig (state M) n) :== 
+  fun (sig : finType) (n : nat) (M : TM sig n) =&gt; loop (step (M:=M)) (haltConf (M:=M))
+</pre>
+
+<div class="paragraph"> </div>
+
+<pre>
+Definition loop : forall A : Type, (A -&gt; A) -&gt; (A -&gt; bool) -&gt; A -&gt; nat -&gt; option A = 
+  fun (A : Type) (f : A -&gt; A) (p : A -&gt; bool) =&gt;
+    fix loop (a : A) (gas : nat) {struct gas} : option A :=
+      if p a 
+      then Some a
+      else match gas with
+           | 0 =&gt; None
+           | S gas' =&gt; loop (f a) gas'
+           end.
+</pre>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab34"></a><h3 class="section">Eval &lt;-&gt; Loop, or small-step semantics and big-step semantics are logically equivalent</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> We need to tie together the eval relation with the loop function.
+
+</li>
+<li> If the computation halts, then there exists some amount of gas for which
+     we could have run the computation with. 
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="TM_eval_iff" class="idref" href="#TM_eval_iff"><span class="id" title="lemma">TM_eval_iff</span></a> (<a id="8bac999218c391434ebfca8da64fb69b" class="idref" href="#8bac999218c391434ebfca8da64fb69b"><span class="id" title="binder">Σ</span></a> : <span class="id" title="record">finType</span>) <a id="n:46" class="idref" href="#n:46"><span class="id" title="binder">n</span></a> (<a id="M:47" class="idref" href="#M:47"><span class="id" title="binder">M</span></a> : <span class="id" title="record">TM</span> <a class="idref" href="lec_07_tm.html#8bac999218c391434ebfca8da64fb69b"><span class="id" title="variable">Σ</span></a> <a class="idref" href="lec_07_tm.html#n:46"><span class="id" title="variable">n</span></a>) <a id="q:48" class="idref" href="#q:48"><span class="id" title="binder">q</span></a> <a id="t:49" class="idref" href="#t:49"><span class="id" title="binder">t</span></a> <a id="q':50" class="idref" href="#q':50"><span class="id" title="binder">q'</span></a> <a id="t':51" class="idref" href="#t':51"><span class="id" title="binder">t'</span></a> :<br/>
+&nbsp;&nbsp;<span class="id" title="inductive">TM.eval</span> <a class="idref" href="lec_07_tm.html#M:47"><span class="id" title="variable">M</span></a> <a class="idref" href="lec_07_tm.html#q:48"><span class="id" title="variable">q</span></a> <a class="idref" href="lec_07_tm.html#t:49"><span class="id" title="variable">t</span></a> <a class="idref" href="lec_07_tm.html#q':50"><span class="id" title="variable">q'</span></a> <a class="idref" href="lec_07_tm.html#t':51"><span class="id" title="variable">t'</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'&lt;-&gt;'_x"><span class="id" title="notation">&lt;-&gt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">exists</span></a> <a id="n:52" class="idref" href="#n:52"><span class="id" title="binder">n</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">,</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="definition">loopM</span> (<span class="id" title="var">M</span> := <a class="idref" href="lec_07_tm.html#M:47"><span class="id" title="variable">M</span></a>) (<span class="id" title="constructor">mk_mconfig</span> <a class="idref" href="lec_07_tm.html#q:48"><span class="id" title="variable">q</span></a> <a class="idref" href="lec_07_tm.html#t:49"><span class="id" title="variable">t</span></a>) <a class="idref" href="lec_07_tm.html#n:52"><span class="id" title="variable">n</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> (<span class="id" title="constructor">mk_mconfig</span> <a class="idref" href="lec_07_tm.html#q':50"><span class="id" title="variable">q'</span></a> <a class="idref" href="lec_07_tm.html#t':51"><span class="id" title="variable">t'</span></a>).<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">split</span>.<br/>
+&nbsp;&nbsp;- <span class="comment">(*&nbsp;(=&gt;)&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Perform&nbsp;induction&nbsp;on&nbsp;the&nbsp;eval&nbsp;relation&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">induction</span> 1 <span class="id" title="keyword">as</span> [ | <span class="id" title="var">q</span> <span class="id" title="var">t</span> <span class="id" title="var">q'</span> <span class="id" title="var">a</span> <span class="id" title="var">q''</span> <span class="id" title="var">t'</span> <span class="id" title="var">H0</span> <span class="id" title="var">H1</span> <span class="id" title="var">H2</span> [<span class="id" title="var">m</span> <span class="id" title="var">IH</span>]].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;+ <span class="id" title="tactic">exists</span> 0. <span class="id" title="var">cbn</span>. <span class="id" title="tactic">unfold</span> <span class="id" title="definition">haltConf</span>. <span class="id" title="var">cbn</span>. <span class="id" title="var">now</span> <span class="id" title="tactic">rewrite</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;+ <span class="id" title="tactic">exists</span> (<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> <span class="id" title="var">m</span>). <span class="id" title="var">cbn</span>. <span class="id" title="tactic">unfold</span> <span class="id" title="definition">haltConf</span>. <span class="id" title="var">cbn</span>. <span class="id" title="tactic">rewrite</span> <span class="id" title="var">H0</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">unfold</span> <span class="id" title="definition">step</span>. <span class="id" title="var">cbn</span>. <span class="id" title="tactic">unfold</span> <span class="id" title="definition">current_chars</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="var">H1</span>. <span class="id" title="var">erewrite</span> <span class="id" title="lemma">Vector_map2_ext</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* <span class="id" title="var">now</span> <span class="id" title="tactic">rewrite</span> <span class="id" title="var">IH</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* <span class="id" title="tactic">intros</span> [] [[] []]; <span class="id" title="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;- <span class="comment">(*&nbsp;(&lt;=)&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">intros</span> [<span class="id" title="var">k</span> <span class="id" title="var">H</span>].<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Induction&nbsp;on&nbsp;natural&nbsp;numbers&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">induction</span> <span class="id" title="var">k</span> <span class="id" title="tactic">in</span> <span class="id" title="var">q</span>, <span class="id" title="var">t</span>, <span class="id" title="var">H</span>, <span class="id" title="var">q'</span>, <span class="id" title="var">t'</span> |- *; <span class="id" title="var">cbn</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H</span>; <span class="id" title="tactic">unfold</span> <span class="id" title="definition">haltConf</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H</span>; <span class="id" title="var">cbn</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;+ <span class="id" title="tactic">destruct</span> <span class="id" title="projection">halt</span> <span class="id" title="var">eqn</span>:<span class="id" title="var">E</span>; <span class="id" title="var">inv</span> <span class="id" title="var">H</span>. <span class="id" title="var">now</span> <span class="id" title="tactic">econstructor</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;+ <span class="id" title="tactic">destruct</span> <span class="id" title="projection">halt</span> <span class="id" title="var">eqn</span>:<span class="id" title="var">E</span>; <span class="id" title="var">inv</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* <span class="id" title="var">now</span> <span class="id" title="tactic">econstructor</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* <span class="id" title="tactic">unfold</span> <span class="id" title="definition">step</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H1</span>. <span class="id" title="var">cbn</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H1</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="projection">trans</span> <span class="id" title="var">eqn</span>:<span class="id" title="var">E2</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">econstructor</span>; [ <span class="id" title="var">eassumption</span> .. | ].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">eapply</span> <span class="id" title="var">IHk</span>. <span class="id" title="var">erewrite</span> <span class="id" title="lemma">Vector_map2_ext</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-- <span class="id" title="var">now</span> <span class="id" title="tactic">rewrite</span> <span class="id" title="var">H1</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-- <span class="id" title="tactic">intros</span> [] [[] []]; <span class="id" title="tactic">reflexivity</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab35"></a><h2 class="section">Is this Notion of Computation Robust?</h2>
+
+<div class="paragraph"> </div>
+
+<a id="lab36"></a><h3 class="section">Robust to alphabet?</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Does changing the alphabet change what we can compute with a TM?
+
+</li>
+<li> No: intuitively we can always encode any finite alphabet in binary.
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab37"></a><h3 class="section">Robust with respect to number of tapes?</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> A 0 tape TM is a trivial TM so let's ignore that for now.
+
+</li>
+<li> What about changing the number of tapes from 1 to 2? No.
+
+</li>
+<li> What about changing the number of tapes from 2 to n for any n &gt; 2? No.
+
+</li>
+<li> How would we prove this?
+<ul class="doclist">
+<li> Encode 2 tapes in 1 tape? Even cells contain contents from tape 1 and odd
+        cells contain contents from tape 2.
+
+</li>
+<li> Encode n tapes in 1 tape? cell (mod n) on tape 1 contains contents from tape n.
+
+</li>
+</ul>
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab38"></a><h3 class="section">How do we encode DFA?</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Can we simulate a DFA?: Yes: 0 tape TM.
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab39"></a><h3 class="section">How many TMs do we need?</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Can a TM simulate a TM? Yes.
+
+</li>
+<li> So we only need to build a *universal Turing machine* (UTM).
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab40"></a><h2 class="section">Universal Turing Machines (UTM)</h2>
+
+<div class="paragraph"> </div>
+
+<a id="lab41"></a><h3 class="section">UTM: The one TM to rule them all</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> The magical thing about TMs is that we only need to build one TM.
+
+</li>
+<li> How do we do this?
+
+</li>
+<li> The entire description of a TM is finite!
+
+</li>
+<li> So
+      1. Encode the description of a TM M, written "M", as a string
+      2. The universal Turing machine's (UTMs) transition function interprets these strings.
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab42"></a><h3 class="section">Encoding a TM as a string</h3>
+
+</div>
+<div class="code">
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">Undecidability.TM.Univ.LowLevel</span>.<br/>
+<span class="id" title="keyword">Print</span> <span class="id" title="var">Undecidability.TM.Univ.LowLevel</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab43"></a><h3 class="section">TM Transition</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Encode the graph of the transition function.
+
+</li>
+</ul>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Print</span> <span class="id" title="definition">graph_of_fun</span>.<br/>
+</div>
+
+<div class="doc">
+<pre>
+Definition graph_of_fun : forall (A : finType) (B : Type), (A -&gt; B) -&gt; list (A * B) = 
+   fun (A : finType) (B : Type) (f : A -&gt; B) =&gt; map (fun x : A =&gt; (x, f x)) enum     
+</pre>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Print</span> <span class="id" title="definition">graph_function</span>.<br/>
+</div>
+
+<div class="doc">
+<pre>
+Definition graph_function : forall (sigM : finType) (M : TM sigM 1),
+                            option sigM * state M -&gt; option sigM * move * state M
+  = 
+  fun (sigM : finType) (M : TM sigM 1) '(s, q) =&gt;
+    let (q', acts) := trans (q, [ | s | ]) in
+    let (w, m) := acts[@Fin0] in (w, m, q')
+</pre>
+
+<div class="paragraph"> </div>
+
+<a id="lab44"></a><h3 class="section">Correctness?</h3>
+
+
+<div class="paragraph"> </div>
+
+    encode(M(x)) &lt;-&gt; UTM("M" ++ encode(x))
+
+<div class="paragraph"> </div>
+
+ 
+</div>
+<div class="code">
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">Undecidability.TM.Univ.Univ</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Check</span> <span class="id" title="lemma">Univ_SpecT</span>.<br/>
+</div>
+
+<div class="doc">
+<pre>
+Lemma Univ_SpecT (M : TM sigM 1) (tp : tape sigM) (q : state M) (k' : nat) :
+    TripleT
+      (fun tin =&gt; exists (q' : state M) (tp' : tape sigM),
+           loopM (mk_mconfig q [|tp|]) k' = Some (mk_mconfig q' [|tp'|]) /\
+           ≃≃([],[|ContainsWorkingTape tp; ContainsTrans M; ContainsState q; Void; Void; Void|]) tin
+           )
+      (Univ_steps q tp k') Univ
+      (fun _ tout =&gt;
+         exists (q' : state M) (tp' : tape sigM),
+           loopM (mk_mconfig q [|tp|]) k' = Some (mk_mconfig q' [|tp'|]) /\
+           ≃≃([],[|ContainsWorkingTape tp'; ContainsTrans M; ContainsState q'; Void; Void; Void|]) tout).
+</pre>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab45"></a><h2 class="section">Halting Problem</h2>
+
+<div class="paragraph"> </div>
+
+<a id="lab46"></a><h3 class="section">Anything is Possible!?</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> At this point, it might appear that TMs can do everything!
+
+</li>
+<li> However, this is not the case.
+
+</li>
+<li> We will show that a TM cannot solve the **halting problem**.
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab47"></a><h3 class="section">Halting problem</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> I can tell if I eventually reach a halting state.
+
+</li>
+<li> In other words, I do not go into an infinite loop.
+
+</li>
+<li> Here is the definition for a TM.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="HaltsTM" class="idref" href="#HaltsTM"><span class="id" title="definition">HaltsTM</span></a> {<a id="20d7c0ecc86fe88fa924e57d0c585b54" class="idref" href="#20d7c0ecc86fe88fa924e57d0c585b54"><span class="id" title="binder">Σ</span></a>: <span class="id" title="record">finType</span>} {<a id="n:54" class="idref" href="#n:54"><span class="id" title="binder">n</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>} (<a id="M:55" class="idref" href="#M:55"><span class="id" title="binder">M</span></a> : <span class="id" title="record">TM</span> <a class="idref" href="lec_07_tm.html#20d7c0ecc86fe88fa924e57d0c585b54"><span class="id" title="variable">Σ</span></a> <a class="idref" href="lec_07_tm.html#n:54"><span class="id" title="variable">n</span></a>) (<a id="t:56" class="idref" href="#t:56"><span class="id" title="binder">t</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Vectors.Vector.html#t"><span class="id" title="inductive">Vector.t</span></a> (<span class="id" title="inductive">tape</span> <a class="idref" href="lec_07_tm.html#20d7c0ecc86fe88fa924e57d0c585b54"><span class="id" title="variable">Σ</span></a>) <a class="idref" href="lec_07_tm.html#n:54"><span class="id" title="variable">n</span></a>) :=<br/>
+&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">exists</span></a> <a id="q':57" class="idref" href="#q':57"><span class="id" title="binder">q'</span></a> <a id="t':58" class="idref" href="#t':58"><span class="id" title="binder">t'</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">,</span></a> <span class="id" title="inductive">eval</span> <a class="idref" href="lec_07_tm.html#M:55"><span class="id" title="variable">M</span></a> (<span class="id" title="projection">start</span> <a class="idref" href="lec_07_tm.html#M:55"><span class="id" title="variable">M</span></a>) <a class="idref" href="lec_07_tm.html#t:56"><span class="id" title="variable">t</span></a> <a class="idref" href="lec_07_tm.html#q':57"><span class="id" title="variable">q'</span></a> <a class="idref" href="lec_07_tm.html#t':58"><span class="id" title="variable">t'</span></a>.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="lec_07_tm.html#HaltsTM"><span class="id" title="definition">HaltsTM</span></a> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>, {<span class="id" title="var">_</span> <span class="id" title="var">_</span>} <span class="id" title="var">_</span> <span class="id" title="var">_</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Where did the halting go?
+
+</li>
+<li> Remember, the eval relation had the set of halting states.
+
+</li>
+<li> So if I could build that proof tree, then the TM must have halted.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="HaltTM" class="idref" href="#HaltTM"><span class="id" title="definition">HaltTM</span></a> (<a id="n:59" class="idref" href="#n:59"><span class="id" title="binder">n</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Specif.html#2d3f7aca3c5e595bced87000c0854440"><span class="id" title="notation">{</span></a><a id="77616297ab8389c2db18b8aa996822b8" class="idref" href="#77616297ab8389c2db18b8aa996822b8"><span class="id" title="binder">Σ</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Specif.html#2d3f7aca3c5e595bced87000c0854440"><span class="id" title="notation">:</span></a> <span class="id" title="record">finType</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Specif.html#2d3f7aca3c5e595bced87000c0854440"><span class="id" title="notation">&amp;</span></a> <span class="id" title="record">TM</span> <a class="idref" href="lec_07_tm.html#18525328a91152dd2803b9136e78a252"><span class="id" title="variable">Σ</span></a> <a class="idref" href="lec_07_tm.html#n:59"><span class="id" title="variable">n</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Specif.html#2d3f7aca3c5e595bced87000c0854440"><span class="id" title="notation">&amp;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Vectors.Vector.html#t"><span class="id" title="inductive">Vector.t</span></a> (<span class="id" title="inductive">tape</span> <a class="idref" href="lec_07_tm.html#77616297ab8389c2db18b8aa996822b8"><span class="id" title="variable">Σ</span></a>) <a class="idref" href="lec_07_tm.html#n:59"><span class="id" title="variable">n</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Specif.html#2d3f7aca3c5e595bced87000c0854440"><span class="id" title="notation">}</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <a id="pat:65" class="idref" href="#pat:65"><span class="id" title="binder">'(</span></a><a id="pat:65" class="idref" href="#pat:65"><span class="id" title="binder">existT2</span></a> <a id="pat:65" class="idref" href="#pat:65"><span class="id" title="binder">_</span></a> <a id="pat:65" class="idref" href="#pat:65"><span class="id" title="binder">_</span></a> <a id="pat:65" class="idref" href="#pat:65"><span class="id" title="binder">Σ</span></a> <a id="pat:65" class="idref" href="#pat:65"><span class="id" title="binder">M</span></a> <a id="pat:65" class="idref" href="#pat:65"><span class="id" title="binder">t</span></a><a id="pat:65" class="idref" href="#pat:65"><span class="id" title="binder">)</span></a> =&gt; <a class="idref" href="lec_07_tm.html#HaltsTM"><span class="id" title="definition">HaltsTM</span></a> <a class="idref" href="lec_07_tm.html#M:63"><span class="id" title="variable">M</span></a> <a class="idref" href="lec_07_tm.html#t:62"><span class="id" title="variable">t</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> How might we prove that a TM cannot solve this problem?
+
+</li>
+<li> Enter **diagonalization**.
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab48"></a><h3 class="section">Diagonalization Technique</h3>
+
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> The <i>diagonalization technique</i> is essentially a **counting** argument
+     that needs to work on infinite sets.
+
+</li>
+<li> As you might already know or suspect, one can't really count with an
+     infinite number of things.
+
+</li>
+<li> So the first thing we need to do is learn how to count with an infinite
+     number of things.
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab49"></a><h3 class="section">Bijections and Infinite Sets</h3>
+
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Let's start with the example of natural numbers.
+
+</li>
+<li> "Clearly" every number is even or odd.
+
+</li>
+<li> But are there wice as many even numbers as natural numbers?
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="Even" class="idref" href="#Even"><span class="id" title="definition">Even</span></a> := <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Specif.html#bc4528e836ab0e91ea7e942fb09e898f"><span class="id" title="notation">{</span></a><a id="m:66" class="idref" href="#m:66"><span class="id" title="binder">m</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Specif.html#bc4528e836ab0e91ea7e942fb09e898f"><span class="id" title="notation">|</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">exists</span></a> <a id="k:67" class="idref" href="#k:67"><span class="id" title="binder">k</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">,</span></a> <a class="idref" href="lec_07_tm.html#m:66"><span class="id" title="variable">m</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> 2 <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Peano.html#ea2ff3d561159081cea6fb2e8113cc54"><span class="id" title="notation">*</span></a> <a class="idref" href="lec_07_tm.html#k:67"><span class="id" title="variable">k</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Specif.html#bc4528e836ab0e91ea7e942fb09e898f"><span class="id" title="notation">}</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> We can map each number to an even number by doubling it.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="double" class="idref" href="#double"><span class="id" title="definition">double</span></a> (<a id="n:68" class="idref" href="#n:68"><span class="id" title="binder">n</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) : <a class="idref" href="lec_07_tm.html#Even"><span class="id" title="definition">Even</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">exists</span> (2 <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Peano.html#ea2ff3d561159081cea6fb2e8113cc54"><span class="id" title="notation">*</span></a> <span class="id" title="var">n</span>).<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">exists</span> <span class="id" title="var">n</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">reflexivity</span>.<br/>
+<span class="id" title="keyword">Defined</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> We can also take each even number and get a natural number from it.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="undouble" class="idref" href="#undouble"><span class="id" title="definition">undouble</span></a> (<a id="ev:69" class="idref" href="#ev:69"><span class="id" title="binder">ev</span></a>: <a class="idref" href="lec_07_tm.html#Even"><span class="id" title="definition">Even</span></a>): <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="lec_07_tm.html#ev:69"><span class="id" title="variable">ev</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Specif.html#exist"><span class="id" title="constructor">exist</span></a> <span class="id" title="var">_</span> <span class="id" title="var">m</span> <span class="id" title="var">_</span> =&gt; <span class="id" title="var">m</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Arith.PeanoNat.html#2e0d8202c5a48097752d760d3a1db6a7"><span class="id" title="notation">/</span></a> 2<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> These operations are inverses of each other.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+<span class="id" title="keyword">Theorem</span> <a id="double_undouble" class="idref" href="#double_undouble"><span class="id" title="lemma">double_undouble</span></a> :<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">forall</span> (<a id="n:71" class="idref" href="#n:71"><span class="id" title="binder">n</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>), <a class="idref" href="lec_07_tm.html#undouble"><span class="id" title="definition">undouble</span></a> (<a class="idref" href="lec_07_tm.html#double"><span class="id" title="definition">double</span></a> <a class="idref" href="lec_07_tm.html#n:71"><span class="id" title="variable">n</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="lec_07_tm.html#n:71"><span class="id" title="variable">n</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">unfold</span> <a class="idref" href="lec_07_tm.html#double"><span class="id" title="definition">double</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">unfold</span> <a class="idref" href="lec_07_tm.html#undouble"><span class="id" title="definition">undouble</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Arith.PeanoNat.html#Nat.mul_comm"><span class="id" title="lemma">Nat.mul_comm</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">n</span>.<br/>
+&nbsp;&nbsp;+ <span class="id" title="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;+ <span class="id" title="tactic">rewrite</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Arith.PeanoNat.html#Nat.div_mul"><span class="id" title="lemma">Nat.div_mul</span></a>; <span class="id" title="tactic">auto</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Theorem</span> <a id="undouble_double" class="idref" href="#undouble_double"><span class="id" title="lemma">undouble_double</span></a> :<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">forall</span> (<a id="ev:72" class="idref" href="#ev:72"><span class="id" title="binder">ev</span></a>: <a class="idref" href="lec_07_tm.html#Even"><span class="id" title="definition">Even</span></a>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_07_tm.html#double"><span class="id" title="definition">double</span></a> (<a class="idref" href="lec_07_tm.html#undouble"><span class="id" title="definition">undouble</span></a> <a class="idref" href="lec_07_tm.html#ev:72"><span class="id" title="variable">ev</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="lec_07_tm.html#ev:72"><span class="id" title="variable">ev</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Opaque</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Arith.PeanoNat.html#Nat.div"><span class="id" title="definition">Nat.div</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">ev</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">e</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="var">e</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">assert</span> (<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Arith.PeanoNat.html#2e0d8202c5a48097752d760d3a1db6a7"><span class="id" title="notation">(</span></a><span class="id" title="var">x0</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Peano.html#0dacc1786c5ba797d47dd85006231633"><span class="id" title="notation">+</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Peano.html#0dacc1786c5ba797d47dd85006231633"><span class="id" title="notation">(</span></a><span class="id" title="var">x0</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Peano.html#0dacc1786c5ba797d47dd85006231633"><span class="id" title="notation">+</span></a> 0<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Peano.html#0dacc1786c5ba797d47dd85006231633"><span class="id" title="notation">)</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Arith.PeanoNat.html#2e0d8202c5a48097752d760d3a1db6a7"><span class="id" title="notation">)/</span></a> 2 <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <span class="id" title="var">x0</span>). {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Arith.PeanoNat.html#Nat.add_0_r"><span class="id" title="lemma">Nat.add_0_r</span></a>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">assert</span> (<span class="id" title="var">x0</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Peano.html#0dacc1786c5ba797d47dd85006231633"><span class="id" title="notation">+</span></a> <span class="id" title="var">x0</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <span class="id" title="var">x0</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Peano.html#ea2ff3d561159081cea6fb2e8113cc54"><span class="id" title="notation">*</span></a> 2). <span class="id" title="var">lia</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Arith.PeanoNat.html#Nat.div_mul"><span class="id" title="lemma">Nat.div_mul</span></a>; <span class="id" title="tactic">auto</span>.<br/>
+&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">unfold</span> <a class="idref" href="lec_07_tm.html#double"><span class="id" title="definition">double</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">reflexivity</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> We have done something called defining a <i>bijection</i>.
+
+</li>
+<li> A *bijection* is a 4-tuple (to, from, to_from, from_to) where
+     * to: A -&gt; B
+     * from: B -&gt; A
+     * to_from and from_to are proofs that we are mutually inverse.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Record</span> <a id="bijection" class="idref" href="#bijection"><span class="id" title="record">bijection</span></a> (<a id="A:73" class="idref" href="#A:73"><span class="id" title="binder">A</span></a> <a id="B:74" class="idref" href="#B:74"><span class="id" title="binder">B</span></a>: <span class="id" title="keyword">Type</span>) :=<br/>
+&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a id="to" class="idref" href="#to"><span class="id" title="projection">to</span></a>: <a class="idref" href="lec_07_tm.html#A:73"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_07_tm.html#B:74"><span class="id" title="variable">B</span></a>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a id="from" class="idref" href="#from"><span class="id" title="projection">from</span></a>: <a class="idref" href="lec_07_tm.html#B:74"><span class="id" title="variable">B</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_07_tm.html#A:73"><span class="id" title="variable">A</span></a>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a id="to_from" class="idref" href="#to_from"><span class="id" title="projection">to_from</span></a>: <span class="id" title="keyword">forall</span> <a id="b:78" class="idref" href="#b:78"><span class="id" title="binder">b</span></a>, <a class="idref" href="lec_07_tm.html#to:76"><span class="id" title="method">to</span></a> (<a class="idref" href="lec_07_tm.html#from:77"><span class="id" title="method">from</span></a> <a class="idref" href="lec_07_tm.html#b:78"><span class="id" title="variable">b</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="lec_07_tm.html#b:78"><span class="id" title="variable">b</span></a>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a id="from_to" class="idref" href="#from_to"><span class="id" title="projection">from_to</span></a>: <span class="id" title="keyword">forall</span> <a id="a:80" class="idref" href="#a:80"><span class="id" title="binder">a</span></a>, <a class="idref" href="lec_07_tm.html#from:77"><span class="id" title="method">from</span></a> (<a class="idref" href="lec_07_tm.html#to:76"><span class="id" title="method">to</span></a> <a class="idref" href="lec_07_tm.html#a:80"><span class="id" title="variable">a</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="lec_07_tm.html#a:80"><span class="id" title="variable">a</span></a><br/>
+&nbsp;&nbsp;}.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Here is the bijection for Even numbers and natural numbers.
+
+</li>
+<li> Thus we will use the idea that if we have a bijection between two sets, then
+     they have the same cardinality.
+
+</li>
+<li> This is a generalization of counting for infinite sets.
+
+</li>
+<li> So the question "are there twice as many natural numbers as even numbers"?
+     isn't well formed.
+
+</li>
+<li> But it does make sense to asks "can the evens be put in bijection with the naturals"?
+     The answer is: yes.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="even_nat_bijection" class="idref" href="#even_nat_bijection"><span class="id" title="definition">even_nat_bijection</span></a> :=<br/>
+&nbsp;&nbsp;{|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_07_tm.html#to"><span class="id" title="projection">to</span></a> := <a class="idref" href="lec_07_tm.html#double"><span class="id" title="definition">double</span></a>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_07_tm.html#from"><span class="id" title="projection">from</span></a> := <a class="idref" href="lec_07_tm.html#undouble"><span class="id" title="definition">undouble</span></a>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_07_tm.html#to_from"><span class="id" title="projection">to_from</span></a> := <a class="idref" href="lec_07_tm.html#undouble_double"><span class="id" title="lemma">undouble_double</span></a>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_07_tm.html#from_to"><span class="id" title="projection">from_to</span></a> := <a class="idref" href="lec_07_tm.html#double_undouble"><span class="id" title="lemma">double_undouble</span></a><br/>
+&nbsp;&nbsp;|}.<br/>
+
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab50"></a><h2 class="section">Diagonalization via Cantor's Theorem on Naturals</h2>
+
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> If a set can be put in bijection with the natural numbers, we say that it is *countable*.
+
+</li>
+<li> Claim:
+     The set of functions nat -&gt; nat is not countable.
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab51"></a><h2 class="section">Proof</h2>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Suppose for the sake of contradiction that is is countable.
+
+</li>
+<li> Thus we can put the set of functions nat -&gt; nat in bijection with the natural numbers.
+
+</li>
+<li> Let us list the graph of the function row-by-row.
+
+</li>
+<li> For this piecture, we will write the graph of the function as a sequence.
+
+</li>
+</ul>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+enumeration&nbsp;of&nbsp;sequences&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;element&nbsp;of&nbsp;sequence&nbsp;--&gt;<br/>
+|<br/>
+v<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;1&nbsp;&nbsp;&nbsp;2&nbsp;&nbsp;&nbsp;3&nbsp;&nbsp;...<br/>
+<br/>
+&nbsp;&nbsp;0&nbsp;0,0&nbsp;0,1&nbsp;0,2&nbsp;0,3<br/>
+<br/>
+&nbsp;&nbsp;1&nbsp;1,0&nbsp;1,1&nbsp;1,2&nbsp;1,3&nbsp;<br/>
+<br/>
+&nbsp;&nbsp;2&nbsp;2,1&nbsp;2,2&nbsp;2,2&nbsp;2,3<br/>
+<br/>
+&nbsp;&nbsp;3&nbsp;3,1&nbsp;3,2&nbsp;3,2&nbsp;3,3&nbsp;<br/>
+<br/>
+&nbsp;&nbsp;...<br/>
+*)</span><br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Now let's change the picture by modifying the diagonal so that
+    ?n,n is dfferent from i,n for every i and n, hence the word *diagonalization*
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+enumeration&nbsp;of&nbsp;sequences&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;element&nbsp;of&nbsp;sequence&nbsp;--&gt;<br/>
+|<br/>
+v<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;1&nbsp;&nbsp;&nbsp;2&nbsp;&nbsp;&nbsp;3&nbsp;&nbsp;...<br/>
+<br/>
+&nbsp;&nbsp;0&nbsp;?,0&nbsp;0,1&nbsp;0,2&nbsp;0,3<br/>
+<br/>
+&nbsp;&nbsp;1&nbsp;1,0&nbsp;?,1&nbsp;1,2&nbsp;1,3&nbsp;<br/>
+<br/>
+&nbsp;&nbsp;2&nbsp;2,1&nbsp;2,2&nbsp;?,2&nbsp;2,3<br/>
+<br/>
+&nbsp;&nbsp;3&nbsp;3,1&nbsp;3,2&nbsp;3,2&nbsp;?,3&nbsp;<br/>
+<br/>
+&nbsp;&nbsp;...<br/>
+*)</span><br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> What does this accomplish?
+
+</li>
+<li> We have found a new function nat -&gt; nat (technically the graph).
+
+</li>
+<li> Which contradicts the assumption that we have a bijection (we missed exactly 1 sequence).
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Let's do this in Coq!
+
+</li>
+<li> Courtesy: https://github.com/bmsherman/finite/blob/master/Iso.v
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Theorem</span> <a id="cantor" class="idref" href="#cantor"><span class="id" title="lemma">cantor</span></a> :<br/>
+&nbsp;&nbsp;<a class="idref" href="lec_07_tm.html#bijection"><span class="id" title="record">bijection</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#False"><span class="id" title="inductive">False</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> 1 <span class="id" title="keyword">as</span> [<span class="id" title="var">seq</span> <span class="id" title="var">index</span> ? ?].<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="comment">(*&nbsp;define&nbsp;a&nbsp;function&nbsp;which&nbsp;differs&nbsp;from&nbsp;the&nbsp;nth&nbsp;sequence&nbsp;at&nbsp;the&nbsp;nth&nbsp;index&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="tactic">pose</span> (<span class="id" title="var">f</span> := <span class="id" title="keyword">fun</span> <a id="n:83" class="idref" href="#n:83"><span class="id" title="binder">n</span></a> =&gt; <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> (<span class="id" title="var">seq</span> <a class="idref" href="lec_07_tm.html#n:82"><span class="id" title="variable">n</span></a> <a class="idref" href="lec_07_tm.html#n:82"><span class="id" title="variable">n</span></a>)).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="comment">(*&nbsp;prove&nbsp;f&nbsp;differs&nbsp;from&nbsp;every&nbsp;sequence&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="tactic">assert</span> (<span class="id" title="keyword">forall</span> <a id="n:85" class="idref" href="#n:85"><span class="id" title="binder">n</span></a>, <span class="id" title="var">f</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'&lt;&gt;'_x"><span class="id" title="notation">&lt;&gt;</span></a> <span class="id" title="var">seq</span> <a class="idref" href="lec_07_tm.html#n:84"><span class="id" title="variable">n</span></a>). {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">unfold</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#not"><span class="id" title="definition">not</span></a>; <span class="id" title="tactic">intros</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">assert</span> (<span class="id" title="var">f</span> <span class="id" title="var">n</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <span class="id" title="var">seq</span> <span class="id" title="var">n</span> <span class="id" title="var">n</span>) <span class="id" title="tactic">by</span> <span class="id" title="tactic">congruence</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">subst</span> <span class="id" title="var">f</span>; <span class="id" title="var">cbn</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H0</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">eapply</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Peano.html#n_Sn"><span class="id" title="lemma">n_Sn</span></a>; <span class="id" title="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> &lt;- (<span class="id" title="var">to_from0</span> <span class="id" title="var">f</span>) <span class="id" title="tactic">in</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">apply</span> (<span class="id" title="var">H</span> (<span class="id" title="var">index</span> <span class="id" title="var">f</span>)).<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">reflexivity</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab52"></a><h3 class="section">Aside: Reals and uncountability</h3>
+
+<div class="paragraph"> </div>
+
+<a id="lab53"></a><h3 class="section">Reals</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Suppose for the sake of contradiction that the reals are countable.
+
+</li>
+<li> Every real number has a binary expansion (module the dyadic rationals).
+
+</li>
+</ul>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+enumeration&nbsp;of&nbsp;reals&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;binary&nbsp;expansion&nbsp;--&gt;<br/>
+|<br/>
+v<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;1&nbsp;&nbsp;&nbsp;2&nbsp;&nbsp;&nbsp;3&nbsp;&nbsp;...<br/>
+<br/>
+&nbsp;&nbsp;0&nbsp;?,0&nbsp;0,1&nbsp;0,2&nbsp;0,3<br/>
+<br/>
+&nbsp;&nbsp;1&nbsp;1,0&nbsp;?,1&nbsp;1,2&nbsp;1,3&nbsp;<br/>
+<br/>
+&nbsp;&nbsp;2&nbsp;2,1&nbsp;2,2&nbsp;?,2&nbsp;2,3<br/>
+<br/>
+&nbsp;&nbsp;3&nbsp;3,1&nbsp;3,2&nbsp;3,2&nbsp;?,3&nbsp;<br/>
+<br/>
+&nbsp;&nbsp;...<br/>
+*)</span><br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Create a binary expansion where we flip the bits on the diagonal.
+
+</li>
+<li> This is a real number that is not in the original sequence.
+
+</li>
+<li> We have just "proven" that real numbers are *uncountable*! (Obviously missing
+    a lot of details but this illustrate the main idea of diagonalization.)
+
+</li>
+<li> In other words, there are multiple infinities!
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab54"></a><h2 class="section">Decidability</h2>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">Undecidability.Synthetic.Definitions</span>.<br/>
+<span class="id" title="keyword">Print</span> <span class="id" title="var">Definitions</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Module</span> <a id="MY_DEC" class="idref" href="#MY_DEC"><span class="id" title="module">MY_DEC</span></a>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="comment">(*&nbsp;(reflects&nbsp;b&nbsp;P)&nbsp;means&nbsp;that<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;provability&nbsp;of&nbsp;the&nbsp;proposition&nbsp;P&nbsp;coincides&nbsp;with&nbsp;b&nbsp;being&nbsp;true&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="MY_DEC.reflects" class="idref" href="#MY_DEC.reflects"><span class="id" title="definition">reflects</span></a> (<a id="b:86" class="idref" href="#b:86"><span class="id" title="binder">b</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">bool</span></a>) (<a id="P:87" class="idref" href="#P:87"><span class="id" title="binder">P</span></a> : <span class="id" title="keyword">Prop</span>) := <a class="idref" href="lec_07_tm.html#P:87"><span class="id" title="variable">P</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'&lt;-&gt;'_x"><span class="id" title="notation">&lt;-&gt;</span></a> <a class="idref" href="lec_07_tm.html#b:86"><span class="id" title="variable">b</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#true"><span class="id" title="constructor">true</span></a>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="comment">(*&nbsp;(decider&nbsp;f&nbsp;P)&nbsp;means&nbsp;that<br/>
+&nbsp;&nbsp;&nbsp;the&nbsp;function&nbsp;f&nbsp;from&nbsp;the&nbsp;domain&nbsp;X&nbsp;of&nbsp;the&nbsp;predicate&nbsp;P&nbsp;to&nbsp;Booleans&nbsp;pointwise&nbsp;reflects&nbsp;P&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="MY_DEC.decider" class="idref" href="#MY_DEC.decider"><span class="id" title="definition">decider</span></a> {<a id="X:88" class="idref" href="#X:88"><span class="id" title="binder">X</span></a>} (<a id="f:89" class="idref" href="#f:89"><span class="id" title="binder">f</span></a> : <a class="idref" href="lec_07_tm.html#X:88"><span class="id" title="variable">X</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">bool</span></a>) (<a id="P:90" class="idref" href="#P:90"><span class="id" title="binder">P</span></a> : <a class="idref" href="lec_07_tm.html#X:88"><span class="id" title="variable">X</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">Prop</span>) : <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">forall</span> <a id="x:91" class="idref" href="#x:91"><span class="id" title="binder">x</span></a>, <a class="idref" href="lec_07_tm.html#MY_DEC.reflects"><span class="id" title="definition">reflects</span></a> (<a class="idref" href="lec_07_tm.html#f:89"><span class="id" title="variable">f</span></a> <a class="idref" href="lec_07_tm.html#x:91"><span class="id" title="variable">x</span></a>) (<a class="idref" href="lec_07_tm.html#P:90"><span class="id" title="variable">P</span></a> <a class="idref" href="lec_07_tm.html#x:91"><span class="id" title="variable">x</span></a>).<br/>
+&nbsp;&nbsp;<span class="comment">(*&nbsp;(decidable&nbsp;P)&nbsp;means&nbsp;that<br/>
+&nbsp;&nbsp;&nbsp;there&nbsp;exists&nbsp;a&nbsp;(total,&nbsp;computable,&nbsp;Boolean)&nbsp;decider&nbsp;f&nbsp;of&nbsp;P&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="MY_DEC.decidable" class="idref" href="#MY_DEC.decidable"><span class="id" title="definition">decidable</span></a> {<a id="X:92" class="idref" href="#X:92"><span class="id" title="binder">X</span></a>} (<a id="P:93" class="idref" href="#P:93"><span class="id" title="binder">P</span></a> : <a class="idref" href="lec_07_tm.html#X:92"><span class="id" title="variable">X</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">Prop</span>) : <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">exists</span></a> <a id="f:94" class="idref" href="#f:94"><span class="id" title="binder">f</span></a> : <a class="idref" href="lec_07_tm.html#X:92"><span class="id" title="variable">X</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">bool</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">,</span></a> <a class="idref" href="lec_07_tm.html#MY_DEC.decider"><span class="id" title="definition">decider</span></a> <a class="idref" href="lec_07_tm.html#f:94"><span class="id" title="variable">f</span></a> <a class="idref" href="lec_07_tm.html#P:93"><span class="id" title="variable">P</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="lec_07_tm.html#MY_DEC"><span class="id" title="module">MY_DEC</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab55"></a><h3 class="section">Is Every Language Decidable?</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Suppose for the sake of contradiction that every language is decidable.
+
+</li>
+<li> We can enumerate the graph of every TM as follows.
+
+</li>
+</ul>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+enumeration&nbsp;of&nbsp;TMs&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;all&nbsp;inputs<br/>
+|<br/>
+v<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x1&nbsp;&nbsp;x2&nbsp;&nbsp;x3&nbsp;&nbsp;x4&nbsp;&nbsp;...<br/>
+<br/>
+&nbsp;M0&nbsp;?,0&nbsp;0,1&nbsp;0,2&nbsp;0,3<br/>
+<br/>
+&nbsp;M1&nbsp;1,0&nbsp;?,1&nbsp;1,2&nbsp;1,3&nbsp;<br/>
+<br/>
+&nbsp;M2&nbsp;2,1&nbsp;2,2&nbsp;?,2&nbsp;2,3<br/>
+<br/>
+&nbsp;M3&nbsp;3,1&nbsp;3,2&nbsp;3,2&nbsp;?,3&nbsp;<br/>
+<br/>
+&nbsp;&nbsp;...<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+<span class="comment">(*<br/>
+&nbsp;&nbsp;-&nbsp;Flip&nbsp;the&nbsp;bits&nbsp;on&nbsp;the&nbsp;diagonal&nbsp;to&nbsp;construct&nbsp;the&nbsp;complement&nbsp;of&nbsp;the&nbsp;language&nbsp;on&nbsp;the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;diagonal.<br/>
+&nbsp;&nbsp;-&nbsp;No&nbsp;TM&nbsp;can&nbsp;recognize&nbsp;this&nbsp;language!<br/>
+&nbsp;&nbsp;-&nbsp;Why?&nbsp;It&nbsp;differs&nbsp;from&nbsp;every&nbsp;TM&nbsp;graph&nbsp;in&nbsp;at&nbsp;least&nbsp;one&nbsp;location.<br/>
+&nbsp;&nbsp;-&nbsp;And&nbsp;we&nbsp;claimed&nbsp;that&nbsp;we&nbsp;listed&nbsp;them&nbsp;all,&nbsp;contradiction.<br/>
+&nbsp;&nbsp;-&nbsp;This&nbsp;shows&nbsp;us&nbsp;that&nbsp;not&nbsp;every&nbsp;language&nbsp;is&nbsp;decidable.<br/>
+&nbsp;&nbsp;-&nbsp;Are&nbsp;there&nbsp;interesting&nbsp;problems&nbsp;that&nbsp;are&nbsp;undecidable?&nbsp;Yes,&nbsp;unfortunately.<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab56"></a><h2 class="section">Halting is Undecidable</h2>
+
+<div class="paragraph"> </div>
+
+<a id="lab57"></a><h2 class="section">Decidable</h2>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> A (computable) function <span class="inlinecode"><span class="id" title="var">f</span>:</span> <span class="inlinecode"><span class="id" title="var">X</span></span> <span class="inlinecode">-&gt;</span> <span class="inlinecode"><span class="id" title="var">option</span></span> <span class="inlinecode">{<span class="id" title="var">true</span>,</span> <span class="inlinecode"><span class="id" title="var">false</span>}</span> is **decidable** if
+    <span class="inlinecode"><span class="id" title="var">f</span>(<span class="id" title="var">x</span>)</span> <span class="inlinecode">=</span> <span class="inlinecode"><span class="id" title="var">Some</span></span> <span class="inlinecode"><span class="id" title="var">true</span></span> or <span class="inlinecode"><span class="id" title="var">f</span>(<span class="id" title="var">x</span>)</span> <span class="inlinecode">=</span> <span class="inlinecode"><span class="id" title="var">Some</span></span> <span class="inlinecode"><span class="id" title="var">false</span></span> for every input x.
+
+</li>
+<li> We use <span class="inlinecode"><span class="id" title="var">None</span></span> to model non-terminiation.
+
+</li>
+<li> So this definition also requires f to terminate.
+
+</li>
+<li> By <span class="inlinecode"><span class="id" title="tactic">eval</span></span> <span class="inlinecode">&lt;-&gt;</span> <span class="inlinecode"><span class="id" title="var">loopM</span></span>, we have that each TM maps to some partial f.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+<a id="lab58"></a><h3 class="section">Halting is Undecidable</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Suppose for the sake of contradiction that halt is decidable.
+
+</li>
+<li> That is
+
+<div class="paragraph"> </div>
+
+    halt(M, x) = true if M halts on x
+               = false if M does not halt on x   
+
+<div class="paragraph"> </div>
+
+
+</li>
+<li> Recall that every TM has a code-word.
+
+</li>
+<li> Define a function flip s.t.
+
+<div class="paragraph"> </div>
+
+    flip("M") = negate halt(M, "M")
+
+<div class="paragraph"> </div>
+
+
+</li>
+<li> By assumption, halt is a function that decides if M halts on input "M"
+    so that flip also terminates.
+
+</li>
+<li> Now consider
+
+<div class="paragraph"> </div>
+
+    flip("flip") = negate halt(flip, "flip")
+
+<div class="paragraph"> </div>
+
+
+</li>
+<li> We have that 
+
+<div class="paragraph"> </div>
+
+    flip("flip") = false if halt(flip, "flip") = true which implies that flip("flip") halts with true. 
+
+<div class="paragraph"> </div>
+
+
+</li>
+<li> Moreoever we have that
+
+<div class="paragraph"> </div>
+
+    flip("flip") = true if halt(flip, "flip") = false which implies that flip("flip") halts with false, a contradiction
+
+<div class="paragraph"> </div>
+
+
+</li>
+<li> So halt cannot exist.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<a id="lab59"></a><h3 class="section">Where is the diagonalization?</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> List out TMs on one axis and code-word's on the other axis.
+
+</li>
+</ul>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+TM&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"TM"&nbsp;--&gt;<br/>
+|<br/>
+v<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;"0"&nbsp;"1"&nbsp;"2"&nbsp;"3"&nbsp;&nbsp;...<br/>
+<br/>
+&nbsp;&nbsp;0&nbsp;?,0&nbsp;0,1&nbsp;0,2&nbsp;0,3<br/>
+<br/>
+&nbsp;&nbsp;1&nbsp;1,0&nbsp;?,1&nbsp;1,2&nbsp;1,3&nbsp;<br/>
+<br/>
+&nbsp;&nbsp;2&nbsp;2,1&nbsp;2,2&nbsp;?,2&nbsp;2,3<br/>
+<br/>
+&nbsp;&nbsp;3&nbsp;3,1&nbsp;3,2&nbsp;3,2&nbsp;?,3&nbsp;<br/>
+<br/>
+&nbsp;&nbsp;...<br/>
+*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Each entry lists out whether machine n halt's on the corresponding input.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="comment">(*<br/>
+TM&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"TM"&nbsp;--&gt;<br/>
+|<br/>
+v<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;"0"&nbsp;"1"&nbsp;"2"&nbsp;"3"&nbsp;&nbsp;...<br/>
+<br/>
+&nbsp;&nbsp;0&nbsp;?,0&nbsp;0,1&nbsp;0,2&nbsp;0,3<br/>
+<br/>
+&nbsp;&nbsp;1&nbsp;1,0&nbsp;?,1&nbsp;1,2&nbsp;1,3&nbsp;<br/>
+<br/>
+&nbsp;&nbsp;2&nbsp;2,1&nbsp;2,2&nbsp;?,2&nbsp;2,3<br/>
+<br/>
+&nbsp;&nbsp;3&nbsp;3,1&nbsp;3,2&nbsp;3,2&nbsp;?,3&nbsp;<br/>
+<br/>
+&nbsp;&nbsp;...<br/>
+*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> If Machine n halts on input "n" with true, then switch it to false.
+
+</li>
+<li> And if Machine n halts on input "n" with false, then switch it to true.
+
+</li>
+<li> So the diagonal is exactly the graph of flip!
+
+</li>
+<li> Which is a TM that halt cannot decide.
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> How did we formalize this in Coq?
+
+</li>
+<li> We defined it to be undecidable!
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">Undecidability.Synthetic.Undecidability</span>.<br/>
+<span class="id" title="keyword">Print</span> <span class="id" title="definition">undecidable</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> We almost have all the pieces to complete the proof.
+
+</li>
+<li> How?
+
+</li>
+<li> Find a bijection between TMs and natural numbers.
+
+</li>
+<li> Find a bijection bewteen encodings of TMs and natural numbers.
+
+</li>
+<li> Use Cantor's diagonalization on natural numbers to show that the
+     graph of the flip TM function does exist.
+
+</li>
+<li> So there is a TM that halt cannot decide.
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab60"></a><h2 class="section">More definitions</h2>
+
+<div class="paragraph"> </div>
+
+<a id="lab61"></a><h3 class="section">Recursive enumerability</h3>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Module</span> <a id="MY_ENUM" class="idref" href="#MY_ENUM"><span class="id" title="module">MY_ENUM</span></a>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="comment">(*&nbsp;(enumerator&nbsp;f&nbsp;P)&nbsp;means&nbsp;that<br/>
+&nbsp;&nbsp;&nbsp;the&nbsp;function&nbsp;f&nbsp;is&nbsp;a&nbsp;surjection&nbsp;from&nbsp;the&nbsp;natural&nbsp;numbers&nbsp;to&nbsp;the&nbsp;positive&nbsp;instances&nbsp;of&nbsp;P&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="MY_ENUM.enumerator" class="idref" href="#MY_ENUM.enumerator"><span class="id" title="definition">enumerator</span></a> {<a id="X:95" class="idref" href="#X:95"><span class="id" title="binder">X</span></a>} (<a id="f:96" class="idref" href="#f:96"><span class="id" title="binder">f</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#option"><span class="id" title="inductive">option</span></a> <a class="idref" href="lec_07_tm.html#X:95"><span class="id" title="variable">X</span></a>) (<a id="P:97" class="idref" href="#P:97"><span class="id" title="binder">P</span></a> : <a class="idref" href="lec_07_tm.html#X:95"><span class="id" title="variable">X</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">Prop</span>) : <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">forall</span> <a id="x:98" class="idref" href="#x:98"><span class="id" title="binder">x</span></a>, <a class="idref" href="lec_07_tm.html#P:97"><span class="id" title="variable">P</span></a> <a class="idref" href="lec_07_tm.html#x:98"><span class="id" title="variable">x</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'&lt;-&gt;'_x"><span class="id" title="notation">&lt;-&gt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">exists</span></a> <a id="n:99" class="idref" href="#n:99"><span class="id" title="binder">n</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">,</span></a> <a class="idref" href="lec_07_tm.html#f:96"><span class="id" title="variable">f</span></a> <a class="idref" href="lec_07_tm.html#n:99"><span class="id" title="variable">n</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <a class="idref" href="lec_07_tm.html#x:98"><span class="id" title="variable">x</span></a>.<br/>
+&nbsp;&nbsp;<span class="comment">(*&nbsp;(enumerable&nbsp;P)&nbsp;means&nbsp;that<br/>
+&nbsp;&nbsp;&nbsp;there&nbsp;exists&nbsp;a&nbsp;(onto&nbsp;the&nbsp;positive&nbsp;instances&nbsp;of&nbsp;P)&nbsp;enumerator&nbsp;f&nbsp;of&nbsp;P&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="MY_ENUM.enumerable" class="idref" href="#MY_ENUM.enumerable"><span class="id" title="definition">enumerable</span></a> {<a id="X:100" class="idref" href="#X:100"><span class="id" title="binder">X</span></a>} (<a id="P:101" class="idref" href="#P:101"><span class="id" title="binder">P</span></a> : <a class="idref" href="lec_07_tm.html#X:100"><span class="id" title="variable">X</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">Prop</span>) : <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">exists</span></a> <a id="f:102" class="idref" href="#f:102"><span class="id" title="binder">f</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#option"><span class="id" title="inductive">option</span></a> <a class="idref" href="lec_07_tm.html#X:100"><span class="id" title="variable">X</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">,</span></a> <a class="idref" href="lec_07_tm.html#MY_ENUM.enumerator"><span class="id" title="definition">enumerator</span></a> <a class="idref" href="lec_07_tm.html#f:102"><span class="id" title="variable">f</span></a> <a class="idref" href="lec_07_tm.html#P:101"><span class="id" title="variable">P</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="lec_07_tm.html#MY_ENUM"><span class="id" title="module">MY_ENUM</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab62"></a><h3 class="section">Semi-Decidability</h3>
+
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> What if we wanted one-sided decidability?
+
+</li>
+<li> This would be known as **semi-decidability**.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Module</span> <a id="MY_SEMI_DEC" class="idref" href="#MY_SEMI_DEC"><span class="id" title="module">MY_SEMI_DEC</span></a>.<br/>
+&nbsp;&nbsp;<span class="comment">(*&nbsp;(semi_decider&nbsp;f&nbsp;P)&nbsp;means&nbsp;that<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;function&nbsp;f&nbsp;from&nbsp;the&nbsp;domain&nbsp;X&nbsp;of&nbsp;the&nbsp;predicate&nbsp;P&nbsp;to&nbsp;Boolean&nbsp;sequences&nbsp;pointwise&nbsp;reflects&nbsp;P<br/>
+&nbsp;&nbsp;&nbsp;with&nbsp;respect&nbsp;to&nbsp;Boolean&nbsp;sequence&nbsp;satisfiability&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="MY_SEMI_DEC.semi_decider" class="idref" href="#MY_SEMI_DEC.semi_decider"><span class="id" title="definition">semi_decider</span></a> {<a id="X:103" class="idref" href="#X:103"><span class="id" title="binder">X</span></a>} (<a id="f:104" class="idref" href="#f:104"><span class="id" title="binder">f</span></a> : <a class="idref" href="lec_07_tm.html#X:103"><span class="id" title="variable">X</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">bool</span></a>) (<a id="P:105" class="idref" href="#P:105"><span class="id" title="binder">P</span></a> : <a class="idref" href="lec_07_tm.html#X:103"><span class="id" title="variable">X</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">Prop</span>) : <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">forall</span> <a id="x:106" class="idref" href="#x:106"><span class="id" title="binder">x</span></a>, <a class="idref" href="lec_07_tm.html#P:105"><span class="id" title="variable">P</span></a> <a class="idref" href="lec_07_tm.html#x:106"><span class="id" title="variable">x</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'&lt;-&gt;'_x"><span class="id" title="notation">&lt;-&gt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">exists</span></a> <a id="n:107" class="idref" href="#n:107"><span class="id" title="binder">n</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">,</span></a> <a class="idref" href="lec_07_tm.html#f:104"><span class="id" title="variable">f</span></a> <a class="idref" href="lec_07_tm.html#x:106"><span class="id" title="variable">x</span></a> <a class="idref" href="lec_07_tm.html#n:107"><span class="id" title="variable">n</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#true"><span class="id" title="constructor">true</span></a>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="comment">(*&nbsp;(semi_decidable&nbsp;P)&nbsp;means&nbsp;that<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;there&nbsp;exists&nbsp;a&nbsp;(computable,&nbsp;to&nbsp;Boolean&nbsp;sequences)&nbsp;semi-decider&nbsp;f&nbsp;of&nbsp;P&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="MY_SEMI_DEC.semi_decidable" class="idref" href="#MY_SEMI_DEC.semi_decidable"><span class="id" title="definition">semi_decidable</span></a> {<a id="X:108" class="idref" href="#X:108"><span class="id" title="binder">X</span></a>} (<a id="P:109" class="idref" href="#P:109"><span class="id" title="binder">P</span></a> : <a class="idref" href="lec_07_tm.html#X:108"><span class="id" title="variable">X</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">Prop</span>) : <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">exists</span></a> <a id="f:110" class="idref" href="#f:110"><span class="id" title="binder">f</span></a> : <a class="idref" href="lec_07_tm.html#X:108"><span class="id" title="variable">X</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">bool</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">,</span></a> <a class="idref" href="lec_07_tm.html#MY_SEMI_DEC.semi_decider"><span class="id" title="definition">semi_decider</span></a> <a class="idref" href="lec_07_tm.html#f:110"><span class="id" title="variable">f</span></a> <a class="idref" href="lec_07_tm.html#P:109"><span class="id" title="variable">P</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="lec_07_tm.html#MY_SEMI_DEC"><span class="id" title="module">MY_SEMI_DEC</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Locate</span> <span class="id" title="var">decidable</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Obviously if p is decidable, it should be semi-decidable.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="decidable_semi_decidable" class="idref" href="#decidable_semi_decidable"><span class="id" title="lemma">decidable_semi_decidable</span></a> {<a id="X:111" class="idref" href="#X:111"><span class="id" title="binder">X</span></a>} {<a id="p:112" class="idref" href="#p:112"><span class="id" title="binder">p</span></a> : <a class="idref" href="lec_07_tm.html#X:111"><span class="id" title="variable">X</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">Prop</span>} :<br/>
+&nbsp;&nbsp;<span class="id" title="definition">decidable</span> <a class="idref" href="lec_07_tm.html#p:112"><span class="id" title="variable">p</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="definition">semi_decidable</span> <a class="idref" href="lec_07_tm.html#p:112"><span class="id" title="variable">p</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span> [<span class="id" title="var">f</span> <span class="id" title="var">H</span>].<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">exists</span> (<span class="id" title="keyword">fun</span> <a id="x:115" class="idref" href="#x:115"><span class="id" title="binder">x</span></a> <a id="n:116" class="idref" href="#n:116"><span class="id" title="binder">n</span></a> =&gt; <span class="id" title="var">f</span> <a class="idref" href="lec_07_tm.html#x:113"><span class="id" title="variable">x</span></a>).<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span> <span class="id" title="var">x</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">unfold</span> <span class="id" title="definition">decider</span>, <span class="id" title="definition">reflects</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H</span>. <span class="comment">(*&nbsp;use&nbsp;the&nbsp;decider!&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">firstorder</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">econstructor</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> And if p is decidable, so it it's complement.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">Undecidability.Synthetic.DecidabilityFacts</span>.<br/>
+<span class="id" title="keyword">Print</span> <span class="id" title="definition">complement</span>.<br/>
+</div>
+
+<div class="doc">
+Definition complement : forall X : Type, (X -&gt; Prop) -&gt; X -&gt; Prop := 
+  fun (X : Type) (P : X -&gt; Prop) (x : X) =&gt; ~ P x   
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="decidable_complement_semi_decidable" class="idref" href="#decidable_complement_semi_decidable"><span class="id" title="lemma">decidable_complement_semi_decidable</span></a> {<a id="X:117" class="idref" href="#X:117"><span class="id" title="binder">X</span></a>} {<a id="p:118" class="idref" href="#p:118"><span class="id" title="binder">p</span></a> : <a class="idref" href="lec_07_tm.html#X:117"><span class="id" title="variable">X</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">Prop</span>} :<br/>
+&nbsp;&nbsp;<span class="id" title="definition">decidable</span> <a class="idref" href="lec_07_tm.html#p:118"><span class="id" title="variable">p</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="definition">semi_decidable</span> (<span class="id" title="definition">complement</span> <a class="idref" href="lec_07_tm.html#p:118"><span class="id" title="variable">p</span></a>).<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="var">now</span> <span class="id" title="tactic">eapply</span> <a class="idref" href="lec_07_tm.html#decidable_semi_decidable"><span class="id" title="lemma">decidable_semi_decidable</span></a>, <span class="id" title="lemma">dec_compl</span>. <span class="comment">(*&nbsp;run&nbsp;the&nbsp;decider&nbsp;on&nbsp;the&nbsp;complement&nbsp;*)</span><br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> And of course, if p is both semi_decidable and it's complement is semi-decidable
+     then it is is decidable. This is hard to prove? given the current formalization.
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab63"></a><h2 class="section">Proof Technique: Reduction</h2>
+
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> How will we show that other problems are undecidable?
+
+</li>
+<li> The primary technique we will use is **reduction**.
+
+</li>
+<li> This is an important technique, not only for undecidability, but also for
+     complexity.
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> What is the idea of reducability?
+
+</li>
+<li> Suppose p is hard problem.
+
+</li>
+<li> We will solve p by using q.
+
+</li>
+<li> Therefore q is at least as hard as p.
+
+</li>
+<li> And p reduces to q.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Module</span> <a id="MY_REDUC" class="idref" href="#MY_REDUC"><span class="id" title="module">MY_REDUC</span></a>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="comment">(*&nbsp;(reduction&nbsp;f&nbsp;P&nbsp;Q)&nbsp;means&nbsp;that&nbsp;f&nbsp;many-one&nbsp;reduces&nbsp;P&nbsp;to&nbsp;Q,&nbsp;that&nbsp;is<br/>
+&nbsp;&nbsp;&nbsp;for&nbsp;the&nbsp;function&nbsp;f&nbsp;from&nbsp;the&nbsp;domain&nbsp;X&nbsp;of&nbsp;P&nbsp;to&nbsp;the&nbsp;domain&nbsp;Y&nbsp;of&nbsp;Q<br/>
+&nbsp;&nbsp;&nbsp;P&nbsp;pointwise&nbsp;coincides&nbsp;with&nbsp;Q&nbsp;∘&nbsp;f&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="MY_REDUC.reduction" class="idref" href="#MY_REDUC.reduction"><span class="id" title="definition">reduction</span></a> {<a id="X:119" class="idref" href="#X:119"><span class="id" title="binder">X</span></a> <a id="Y:120" class="idref" href="#Y:120"><span class="id" title="binder">Y</span></a>} (<a id="f:121" class="idref" href="#f:121"><span class="id" title="binder">f</span></a> : <a class="idref" href="lec_07_tm.html#X:119"><span class="id" title="variable">X</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_07_tm.html#Y:120"><span class="id" title="variable">Y</span></a>) (<a id="P:122" class="idref" href="#P:122"><span class="id" title="binder">P</span></a> : <a class="idref" href="lec_07_tm.html#X:119"><span class="id" title="variable">X</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">Prop</span>) (<a id="Q:123" class="idref" href="#Q:123"><span class="id" title="binder">Q</span></a> : <a class="idref" href="lec_07_tm.html#Y:120"><span class="id" title="variable">Y</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">Prop</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">forall</span> <a id="x:124" class="idref" href="#x:124"><span class="id" title="binder">x</span></a>, <a class="idref" href="lec_07_tm.html#P:122"><span class="id" title="variable">P</span></a> <a class="idref" href="lec_07_tm.html#x:124"><span class="id" title="variable">x</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'&lt;-&gt;'_x"><span class="id" title="notation">&lt;-&gt;</span></a> <a class="idref" href="lec_07_tm.html#Q:123"><span class="id" title="variable">Q</span></a> (<a class="idref" href="lec_07_tm.html#f:121"><span class="id" title="variable">f</span></a> <a class="idref" href="lec_07_tm.html#x:124"><span class="id" title="variable">x</span></a>).<br/>
+&nbsp;&nbsp;<span class="comment">(*&nbsp;(reduces&nbsp;P&nbsp;Q)&nbsp;means&nbsp;that<br/>
+&nbsp;&nbsp;&nbsp;there&nbsp;exists&nbsp;a&nbsp;(total,&nbsp;computable,&nbsp;many-one)&nbsp;reduction&nbsp;f&nbsp;from&nbsp;P&nbsp;to&nbsp;Q&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="MY_REDUC.reduces" class="idref" href="#MY_REDUC.reduces"><span class="id" title="definition">reduces</span></a> {<a id="X:125" class="idref" href="#X:125"><span class="id" title="binder">X</span></a> <a id="Y:126" class="idref" href="#Y:126"><span class="id" title="binder">Y</span></a>} (<a id="P:127" class="idref" href="#P:127"><span class="id" title="binder">P</span></a> : <a class="idref" href="lec_07_tm.html#X:125"><span class="id" title="variable">X</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">Prop</span>) (<a id="Q:128" class="idref" href="#Q:128"><span class="id" title="binder">Q</span></a> : <a class="idref" href="lec_07_tm.html#Y:126"><span class="id" title="variable">Y</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">Prop</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">exists</span></a> <a id="f:129" class="idref" href="#f:129"><span class="id" title="binder">f</span></a> : <a class="idref" href="lec_07_tm.html#X:125"><span class="id" title="variable">X</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_07_tm.html#Y:126"><span class="id" title="variable">Y</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">,</span></a> <a class="idref" href="lec_07_tm.html#MY_REDUC.reduction"><span class="id" title="definition">reduction</span></a> <a class="idref" href="lec_07_tm.html#f:129"><span class="id" title="variable">f</span></a> <a class="idref" href="lec_07_tm.html#P:127"><span class="id" title="variable">P</span></a> <a class="idref" href="lec_07_tm.html#Q:128"><span class="id" title="variable">Q</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Notation</span> <a id="f3a2bc661fa84265871fe6657da9859f" class="idref" href="#f3a2bc661fa84265871fe6657da9859f"><span class="id" title="notation">&quot;</span></a>P ⪯ Q" := (<a class="idref" href="lec_07_tm.html#MY_REDUC.reduces"><span class="id" title="definition">reduces</span></a> <span class="id" title="var">P</span> <span class="id" title="var">Q</span>) (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 70).<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="lec_07_tm.html#MY_REDUC"><span class="id" title="module">MY_REDUC</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Suppose p is undecidable.
+
+</li>
+<li> We will solve p by using q (i.e., solving p reduces to solving q).
+
+</li>
+<li> Therefore q is also undecidable.
+
+</li>
+</ul>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="undecidability_from_reducibility" class="idref" href="#undecidability_from_reducibility"><span class="id" title="lemma">undecidability_from_reducibility</span></a> {<a id="X:130" class="idref" href="#X:130"><span class="id" title="binder">X</span></a>} {<a id="p:131" class="idref" href="#p:131"><span class="id" title="binder">p</span></a> : <a class="idref" href="lec_07_tm.html#X:130"><span class="id" title="variable">X</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">Prop</span>} {<a id="Y:132" class="idref" href="#Y:132"><span class="id" title="binder">Y</span></a>} {<a id="q:133" class="idref" href="#q:133"><span class="id" title="binder">q</span></a> : <a class="idref" href="lec_07_tm.html#Y:132"><span class="id" title="variable">Y</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">Prop</span>} :<br/>
+&nbsp;&nbsp;<span class="id" title="definition">undecidable</span> <a class="idref" href="lec_07_tm.html#p:131"><span class="id" title="variable">p</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;<a class="idref" href="lec_07_tm.html#p:131"><span class="id" title="variable">p</span></a> <span class="id" title="notation">⪯</span> <a class="idref" href="lec_07_tm.html#q:133"><span class="id" title="variable">q</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;<span class="id" title="definition">undecidable</span> <a class="idref" href="lec_07_tm.html#q:133"><span class="id" title="variable">q</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">unfold</span> <span class="id" title="definition">undecidable</span>, <span class="id" title="definition">decidable</span>, <span class="id" title="definition">decider</span>, <span class="id" title="definition">reduces</span>, <span class="id" title="definition">reduction</span>, <span class="id" title="definition">reflects</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span> <span class="id" title="var">H</span> [<span class="id" title="var">f</span> <span class="id" title="var">Hf</span>] [<span class="id" title="var">d</span> <span class="id" title="var">Hd</span>].<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">eapply</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">exists</span> (<span class="id" title="keyword">fun</span> <a id="x:135" class="idref" href="#x:135"><span class="id" title="binder">x</span></a> =&gt; <span class="id" title="var">d</span> (<span class="id" title="var">f</span> <a class="idref" href="lec_07_tm.html#x:134"><span class="id" title="variable">x</span></a>)).<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span> <span class="id" title="var">x</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="var">Hf</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">eapply</span> <span class="id" title="var">Hd</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Many problems can be shown to be undecidable this way.
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab64"></a><h2 class="section">Summary</h2>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> We did a lot today.
+<ul class="doclist">
+<li> We learned about TMs and how to formalize partial functions in Coq.
+
+</li>
+<li> Namely we saw that we could give small-step semantics to TMs as
+     well as large-step partial functin semantics to TMs.
+
+</li>
+<li> We finally learned about decidability and its connection with <span class="inlinecode"><span class="id" title="var">boolean</span></span> vs. <span class="inlinecode"><span class="id" title="keyword">Prop</span></span>.
+
+</li>
+<li> We learned two important proof techniques: diagonalization and reducibility.
+
+</li>
+<li> The former is a "counting" argument.
+
+</li>
+<li> The latter abstracts away the low-level "counting" argument so that
+     we don't need to think about counting arguments again.
+
+</li>
+</ul>
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+</div>
+</div>
+
+<div id="footer">
+<hr/><a href="index.html">Index</a><hr/>This page has been generated by <a href="http://coq.inria.fr/">coqdoc</a>
+</div>
+
+</div>
+
+</body>
+</html>

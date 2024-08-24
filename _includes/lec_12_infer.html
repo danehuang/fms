@@ -1,0 +1,2283 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<title>lec_12_infer</title>
+</head>
+
+<body>
+
+<div id="page">
+
+<div id="header">
+</div>
+
+<div id="main">
+
+<h1 class="libtitle">Library lec_12_infer</h1>
+
+<div class="code">
+</div>
+
+<div class="doc">
+<a id="lab1"></a><h1 class="section">More Types, Type-Checking, and Type-Inference</h1>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">Coq</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Strings.String.html#"><span class="id" title="library">Strings.String</span></a>.<br/>
+<span class="id" title="keyword">Import</span> <span class="id" title="var">Nat</span>.<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">Maps</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">Coq</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Arith.Arith.html#"><span class="id" title="library">Arith.Arith</span></a>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">Coq</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Arith.PeanoNat.html#"><span class="id" title="library">Arith.PeanoNat</span></a>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">Coq</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Bool.Bool.html#"><span class="id" title="library">Bool.Bool</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">lec_11_stlc</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab2"></a><h2 class="section">References</h2>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> https://softwarefoundations.cis.upenn.edu/plf-current/MoreStlc.html
+
+</li>
+<li> https://softwarefoundations.cis.upenn.edu/plf-current/Typechecking.html
+
+</li>
+<li> https://softwarefoundations.cis.upenn.edu/plf-current/References.html
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+ 
+<div class="paragraph"> </div>
+
+<a id="lab3"></a><h2 class="section">Recap</h2>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Last time, we introduced STLC which took the Lambda calculus and layered
+     a type-system on top.
+
+</li>
+<li> The advantage was that we could get rid of stuck terms.
+
+</li>
+<li> The disadvantage was that we lost expressive power.
+
+</li>
+<li> Today, we'll introduce more types and also look into how to make
+     type-systems practical by introducing algorithmic versions a la
+     <i>type-checking</i> and <i>type-inference</i>.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+ 
+<div class="paragraph"> </div>
+
+<a id="lab4"></a><h2 class="section">Goal for today</h2>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Introduce more simple types: let, unit, products/sums, and records.
+
+</li>
+<li> Introduce reference types.
+
+</li>
+<li> Introduce more type system extensions: parameteric polymorphism and subtyping.
+
+</li>
+<li> Give <i>type-checking</i> and <i>type-inference</i> algorithms.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+ 
+<div class="paragraph"> </div>
+
+<a id="lab5"></a><h2 class="section">More Simple Types</h2>
+
+<div class="paragraph"> </div>
+
+<a id="lab6"></a><h3 class="section">Fix</h3>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Print</span> <span class="id" title="inductive">tm</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab7"></a><h4 class="section">Syntax</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;t&nbsp;::=&nbsp;...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(same&nbsp;as&nbsp;before&nbsp;and&nbsp;...)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;fix&nbsp;t&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fix-points)<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab8"></a><h4 class="section">Types</h4>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Nothing changes
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+ 
+<div class="paragraph"> </div>
+
+<a id="lab9"></a><h4 class="section">Values</h4>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Nothing changes
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+ 
+<div class="paragraph"> </div>
+
+<a id="lab10"></a><h4 class="section">Operational Semantics</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;same&nbsp;operational&nbsp;rules&nbsp;and&nbsp;...<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;----------------------------------------------&nbsp;ST_fix<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fix&nbsp;(\x:&nbsp;T,&nbsp;t)&nbsp;--&gt;&nbsp;<span class="inlinecode"><span class="id" title="var">x</span></span> <span class="inlinecode">:=</span> <span class="inlinecode"><span class="id" title="keyword">fix</span></span> <span class="inlinecode">(\<span class="id" title="var">x</span>:</span> <span class="inlinecode"><span class="id" title="var">T</span>,</span> <span class="inlinecode"><span class="id" title="var">t</span>)</span>&nbsp;t<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab11"></a><h4 class="section">Typing Rules</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;same&nbsp;typing&nbsp;rules&nbsp;and&nbsp;...<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;t&nbsp;:&nbsp;T&nbsp;-&gt;&nbsp;T<br/>
+&nbsp;&nbsp;------------------&nbsp;T_fix<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;fix&nbsp;t&nbsp;:&nbsp;T<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab12"></a><h4 class="section">Example 1: Factorial</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;Γ&nbsp;⊢&nbsp;(\f:&nbsp;nat&nbsp;-&gt;&nbsp;nat,&nbsp;\n:&nbsp;nat,&nbsp;if&nbsp;n&nbsp;==&nbsp;0&nbsp;then&nbsp;0&nbsp;else&nbsp;f&nbsp;(n-1))&nbsp;:&nbsp;(nat&nbsp;-&gt;&nbsp;nat)&nbsp;-&gt;&nbsp;(nat&nbsp;-&gt;&nbsp;nat)<br/>
+&nbsp;&nbsp;--------------------------------------------------------------------------------------&nbsp;T_fix<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;fix&nbsp;(\f:&nbsp;nat&nbsp;-&gt;&nbsp;nat,&nbsp;\n:&nbsp;nat,&nbsp;if&nbsp;n&nbsp;==&nbsp;0&nbsp;then&nbsp;0&nbsp;else&nbsp;f&nbsp;(n-1))&nbsp;:&nbsp;nat&nbsp;-&gt;&nbsp;nat<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab13"></a><h4 class="section">Example 2: Non-termination</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;(\f:&nbsp;nat&nbsp;-&gt;&nbsp;nat,&nbsp;\n:&nbsp;nat,&nbsp;f&nbsp;n)&nbsp;:&nbsp;(nat&nbsp;-&gt;&nbsp;nat)&nbsp;-&gt;&nbsp;(nat&nbsp;-&gt;&nbsp;nat)<br/>
+&nbsp;&nbsp;-----------------------------------------------------------------------&nbsp;T_fix<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;fix&nbsp;(\f:&nbsp;nat&nbsp;-&gt;&nbsp;nat,&nbsp;\n:&nbsp;nat,&nbsp;f&nbsp;n)&nbsp;:&nbsp;nat&nbsp;-&gt;&nbsp;nat<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab14"></a><h3 class="section">Let</h3>
+
+<div class="paragraph"> </div>
+
+<a id="lab15"></a><h4 class="section">Syntax</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;t&nbsp;::=&nbsp;...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(same&nbsp;as&nbsp;before&nbsp;and&nbsp;...)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;let&nbsp;x=t&nbsp;in&nbsp;t&nbsp;&nbsp;&nbsp;(let&nbsp;bindings)<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab16"></a><h4 class="section">Types</h4>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Nothing changes
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="let_ex1" class="idref" href="#let_ex1"><span class="id" title="definition">let_ex1</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">let</span> <a id="x:1" class="idref" href="#x:1"><span class="id" title="binder">x</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> := 1 <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#x:1"><span class="id" title="variable">x</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Peano.html#0dacc1786c5ba797d47dd85006231633"><span class="id" title="notation">+</span></a> 1.<br/>
+
+<br/>
+<span class="id" title="keyword">Eval</span> <span class="id" title="tactic">compute</span> <span class="id" title="tactic">in</span> <a class="idref" href="lec_12_infer.html#let_ex1"><span class="id" title="definition">let_ex1</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="let_ex2" class="idref" href="#let_ex2"><span class="id" title="definition">let_ex2</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">let</span> <a id="x:2" class="idref" href="#x:2"><span class="id" title="binder">x</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">bool</span></a> := <span class="id" title="notation">true</span> <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;(<span class="id" title="keyword">let</span> <a id="y:3" class="idref" href="#y:3"><span class="id" title="binder">y</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> := <span class="id" title="keyword">if</span> <a class="idref" href="lec_12_infer.html#x:2"><span class="id" title="variable">x</span></a> <span class="id" title="keyword">then</span> 1 <span class="id" title="keyword">else</span> 2 <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#y:3"><span class="id" title="variable">y</span></a>).<br/>
+
+<br/>
+<span class="id" title="keyword">Eval</span> <span class="id" title="tactic">compute</span> <span class="id" title="tactic">in</span> <a class="idref" href="lec_12_infer.html#let_ex2"><span class="id" title="definition">let_ex2</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="let_ex3" class="idref" href="#let_ex3"><span class="id" title="definition">let_ex3</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">bool</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">let</span> <a id="x:4" class="idref" href="#x:4"><span class="id" title="binder">x</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> := 1 <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">let</span> <a id="x:5" class="idref" href="#x:5"><span class="id" title="binder">x</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">bool</span></a> := <span class="id" title="notation">true</span> <span class="id" title="tactic">in</span>  <span class="comment">(*&nbsp;shadowing&nbsp;*)</span><br/>
+&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#x:5"><span class="id" title="variable">x</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Eval</span> <span class="id" title="tactic">compute</span> <span class="id" title="tactic">in</span> <a class="idref" href="lec_12_infer.html#let_ex3"><span class="id" title="definition">let_ex3</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab17"></a><h4 class="section">Values</h4>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Nothing changes
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+ 
+<div class="paragraph"> </div>
+
+<a id="lab18"></a><h4 class="section">Operational Semantics</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;same&nbsp;operational&nbsp;rules&nbsp;and&nbsp;...<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;t1&nbsp;--&gt;&nbsp;t1'<br/>
+&nbsp;&nbsp;&nbsp;------------------------------------------&nbsp;ST_Let1<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;x&nbsp;=&nbsp;t1&nbsp;in&nbsp;t2&nbsp;--&gt;&nbsp;let&nbsp;x&nbsp;=&nbsp;t1'&nbsp;in&nbsp;t2&nbsp;<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;value&nbsp;v1<br/>
+&nbsp;&nbsp;&nbsp;------------------------------------------&nbsp;ST_LetValue<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;x&nbsp;=&nbsp;t1&nbsp;in&nbsp;t2&nbsp;--&gt;&nbsp;<span class="inlinecode"><span class="id" title="var">x</span>:=</span> <span class="inlinecode"><span class="id" title="var">v1</span></span>&nbsp;t2<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab19"></a><h4 class="section">Typing Rules</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;same&nbsp;typing&nbsp;rules&nbsp;and&nbsp;...<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;t1&nbsp;:&nbsp;T1&nbsp;&nbsp;Γ,&nbsp;x&nbsp;:&nbsp;T1&nbsp;⊢&nbsp;t2&nbsp;:&nbsp;T2<br/>
+&nbsp;&nbsp;-------------------------------------&nbsp;T_Let<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;let&nbsp;x&nbsp;=&nbsp;t1&nbsp;in&nbsp;t2&nbsp;:&nbsp;T2<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab20"></a><h3 class="section">Unit</h3>
+
+<div class="paragraph"> </div>
+
+<a id="lab21"></a><h4 class="section">Syntax</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;t&nbsp;::=&nbsp;...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(same&nbsp;as&nbsp;before&nbsp;and&nbsp;...)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;()&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(unit)<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab22"></a><h4 class="section">Types</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;T&nbsp;::=&nbsp;...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(same&nbsp;as&nbsp;before&nbsp;and&nbsp;...)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;unit&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(unit&nbsp;type)<br/>
+&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+<span class="id" title="keyword">Print</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#unit"><span class="id" title="inductive">unit</span></a>.<br/>
+<span class="id" title="keyword">Definition</span> <a id="unit" class="idref" href="#unit"><span class="id" title="definition">unit</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#unit"><span class="id" title="inductive">unit</span></a> := <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#tt"><span class="id" title="constructor">tt</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab23"></a><h4 class="section">Values</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;v&nbsp;::=&nbsp;...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(same&nbsp;as&nbsp;before&nbsp;and&nbsp;...)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;()&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(unit)<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab24"></a><h4 class="section">Operational semantics</h4>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> nothing changes
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+ 
+<div class="paragraph"> </div>
+
+<a id="lab25"></a><h4 class="section">Typing rules</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;same&nbsp;typing&nbsp;rules&nbsp;and&nbsp;...<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;------------------------------&nbsp;T_Unit<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;()&nbsp;:&nbsp;unit<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab26"></a><h3 class="section">Products</h3>
+
+<div class="paragraph"> </div>
+
+<a id="lab27"></a><h4 class="section">Syntax</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;t&nbsp;::=&nbsp;...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(same&nbsp;as&nbsp;before&nbsp;and&nbsp;...)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(t,&nbsp;t)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(pair)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;fst&nbsp;t&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(first&nbsp;projection)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;snd&nbsp;t&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(second&nbsp;projection)<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab28"></a><h4 class="section">Types</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;T&nbsp;::=&nbsp;...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(same&nbsp;as&nbsp;before&nbsp;and&nbsp;...)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;T&nbsp;*&nbsp;T&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(product&nbsp;type)<br/>
+&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="prod1" class="idref" href="#prod1"><span class="id" title="definition">prod1</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">*</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">bool</span></a> := <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">(</span></a>1<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a> <span class="id" title="notation">true</span><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">)</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="prod2" class="idref" href="#prod2"><span class="id" title="definition">prod2</span></a> : (<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">(</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">*</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">bool</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">)</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">*</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) := <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">((</span></a>1<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a> <span class="id" title="notation">true</span><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">),</span></a> 2<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">)</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab29"></a><h4 class="section">Values</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;v&nbsp;::=&nbsp;...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(same&nbsp;as&nbsp;before&nbsp;and&nbsp;...)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(v,&nbsp;v)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(pair)<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab30"></a><h4 class="section">Operational semantics</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;same&nbsp;operational&nbsp;rules&nbsp;and&nbsp;...<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;t1&nbsp;--&gt;&nbsp;t1'<br/>
+&nbsp;&nbsp;&nbsp;---------------------------&nbsp;ST_Pair1<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(t1,&nbsp;t2)&nbsp;--&gt;&nbsp;(t1',&nbsp;t2)<br/>
+<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;value&nbsp;v1&nbsp;&nbsp;&nbsp;t2&nbsp;--&gt;&nbsp;t2'<br/>
+&nbsp;&nbsp;&nbsp;---------------------------&nbsp;ST_Pair2<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(v1,&nbsp;t2)&nbsp;--&gt;&nbsp;(v1,&nbsp;t2')<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;t&nbsp;--&gt;&nbsp;t'<br/>
+&nbsp;&nbsp;&nbsp;---------------------------&nbsp;ST_Fst1<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fst&nbsp;t&nbsp;--&gt;&nbsp;fst&nbsp;t'<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;value&nbsp;v1&nbsp;&nbsp;&nbsp;&nbsp;value&nbsp;v2<br/>
+&nbsp;&nbsp;&nbsp;---------------------------&nbsp;ST_FstPair<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fst&nbsp;(v1,&nbsp;v2)&nbsp;--&gt;&nbsp;v1<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;t&nbsp;--&gt;&nbsp;t'<br/>
+&nbsp;&nbsp;&nbsp;---------------------------&nbsp;ST_Snd1<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;snd&nbsp;t&nbsp;--&gt;&nbsp;snd&nbsp;t'<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;value&nbsp;v1&nbsp;&nbsp;&nbsp;&nbsp;value&nbsp;v2<br/>
+&nbsp;&nbsp;&nbsp;---------------------------&nbsp;ST_SndPair<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;snd&nbsp;(v1,&nbsp;v2)&nbsp;--&gt;&nbsp;v1<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab31"></a><h4 class="section">Typing rules</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;same&nbsp;typing&nbsp;rules&nbsp;and&nbsp;...<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;t1&nbsp;:&nbsp;T1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;t2&nbsp;:&nbsp;T2<br/>
+&nbsp;&nbsp;---------------------------------&nbsp;T_Pair<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;(t1,&nbsp;t2)&nbsp;:&nbsp;T1&nbsp;*&nbsp;T2<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;t&nbsp;:&nbsp;T1&nbsp;*&nbsp;T2<br/>
+&nbsp;&nbsp;-------------------------&nbsp;T_Fst<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;fst&nbsp;t&nbsp;:&nbsp;T1<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;t&nbsp;:&nbsp;T1&nbsp;*&nbsp;T2<br/>
+&nbsp;&nbsp;-------------------------&nbsp;T_Fst<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;snd&nbsp;t&nbsp;:&nbsp;T2<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+<span class="id" title="keyword">Eval</span> <span class="id" title="tactic">compute</span> <span class="id" title="tactic">in</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#fst"><span class="id" title="definition">fst</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">((</span></a>1 <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Peano.html#0dacc1786c5ba797d47dd85006231633"><span class="id" title="notation">+</span></a> 1<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a> <span class="id" title="notation">true</span><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">),</span></a> 2<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">)</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab32"></a><h3 class="section">Sums</h3>
+
+<div class="paragraph"> </div>
+
+<a id="lab33"></a><h4 class="section">Syntax</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;t&nbsp;::=&nbsp;...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(same&nbsp;as&nbsp;before&nbsp;and&nbsp;...)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;inl&nbsp;T&nbsp;t&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(inject&nbsp;left)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;inr&nbsp;T&nbsp;t&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(inject&nbsp;right)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;case&nbsp;t&nbsp;of<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;inl&nbsp;x&nbsp;=&gt;&nbsp;t<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;inr&nbsp;y&nbsp;=&gt;&nbsp;t&nbsp;&nbsp;&nbsp;(case)<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab34"></a><h4 class="section">Types</h4>
+
+
+<div class="paragraph"> </div>
+
+    T ::= ...            (same as before and ...)
+        | T + T          (sum type)
+
+<div class="paragraph"> </div>
+
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="sum1" class="idref" href="#sum1"><span class="id" title="definition">sum1</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e03f39daf98516fa530d3f6f5a1b4d92"><span class="id" title="notation">+</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">bool</span></a> := <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#inl"><span class="id" title="constructor">inl</span></a> 1.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="sum2" class="idref" href="#sum2"><span class="id" title="definition">sum2</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e03f39daf98516fa530d3f6f5a1b4d92"><span class="id" title="notation">+</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">bool</span></a> := <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#inr"><span class="id" title="constructor">inr</span></a> <span class="id" title="notation">true</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="sum3" class="idref" href="#sum3"><span class="id" title="definition">sum3</span></a> (<a id="x:6" class="idref" href="#x:6"><span class="id" title="binder">x</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e03f39daf98516fa530d3f6f5a1b4d92"><span class="id" title="notation">+</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">bool</span></a>) : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">bool</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e03f39daf98516fa530d3f6f5a1b4d92"><span class="id" title="notation">+</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="lec_12_infer.html#x:6"><span class="id" title="variable">x</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#inl"><span class="id" title="constructor">inl</span></a> <span class="id" title="var">n</span> =&gt; <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#inr"><span class="id" title="constructor">inr</span></a> <span class="id" title="var">n</span><br/>
+&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#inr"><span class="id" title="constructor">inr</span></a> <span class="id" title="var">b</span> =&gt; <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#inl"><span class="id" title="constructor">inl</span></a> <span class="id" title="var">b</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab35"></a><h4 class="section">Values</h4>
+
+
+<div class="paragraph"> </div>
+
+    v ::= ...            (same as before and ...)
+        | inl T v        (inject left)
+        | inr T v        (inject right)
+
+<div class="paragraph"> </div>
+
+ 
+<div class="paragraph"> </div>
+
+<a id="lab36"></a><h4 class="section">Operational semantics</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;same&nbsp;operational&nbsp;rules&nbsp;and&nbsp;...<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;t1&nbsp;--&gt;&nbsp;t1'<br/>
+&nbsp;&nbsp;&nbsp;----------------------------&nbsp;ST_Inl<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;inl&nbsp;T2&nbsp;t1&nbsp;--&gt;&nbsp;inl&nbsp;T2&nbsp;t1'<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;t2&nbsp;--&gt;&nbsp;t2'<br/>
+&nbsp;&nbsp;&nbsp;----------------------------&nbsp;ST_Inr<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;inr&nbsp;T1&nbsp;t2&nbsp;--&gt;&nbsp;inr&nbsp;T1&nbsp;t2'<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;t0&nbsp;--&gt;&nbsp;t0'<br/>
+&nbsp;&nbsp;&nbsp;----------------------------------------------&nbsp;ST_Case<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case&nbsp;t0&nbsp;of&nbsp;inl&nbsp;x1&nbsp;=&gt;&nbsp;t1&nbsp;|&nbsp;inr&nbsp;x2&nbsp;=&gt;&nbsp;t2&nbsp;--&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case&nbsp;t0'&nbsp;of&nbsp;inl&nbsp;x1&nbsp;=&gt;&nbsp;t1&nbsp;|&nbsp;inr&nbsp;x2&nbsp;=&gt;&nbsp;t2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;value&nbsp;v1<br/>
+&nbsp;&nbsp;&nbsp;---------------------------------------------------------------------&nbsp;ST_Case<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case&nbsp;(inl&nbsp;T2&nbsp;v1)&nbsp;of&nbsp;inl&nbsp;x1&nbsp;=&gt;&nbsp;t1&nbsp;|&nbsp;inr&nbsp;x2&nbsp;=&gt;&nbsp;t2&nbsp;--&gt;&nbsp;<span class="inlinecode"><span class="id" title="var">x1</span></span> <span class="inlinecode">:=</span> <span class="inlinecode"><span class="id" title="var">v1</span></span>t1<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;value&nbsp;v2<br/>
+&nbsp;&nbsp;&nbsp;---------------------------------------------------------------------&nbsp;ST_Case<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case&nbsp;(inr&nbsp;T1&nbsp;v2)&nbsp;of&nbsp;inl&nbsp;x1&nbsp;=&gt;&nbsp;t1&nbsp;|&nbsp;inr&nbsp;x2&nbsp;=&gt;&nbsp;t2&nbsp;--&gt;&nbsp;<span class="inlinecode"><span class="id" title="var">x2</span></span> <span class="inlinecode">:=</span> <span class="inlinecode"><span class="id" title="var">v2</span></span>t2<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab37"></a><h4 class="section">Typing rules</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;same&nbsp;typing&nbsp;rules&nbsp;and&nbsp;...<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;t1&nbsp;:&nbsp;T1<br/>
+&nbsp;&nbsp;---------------------------------&nbsp;T_Inl<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;inl&nbsp;T2&nbsp;t1&nbsp;:&nbsp;T1&nbsp;+&nbsp;T2<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;t2&nbsp;:&nbsp;T2<br/>
+&nbsp;&nbsp;---------------------------------&nbsp;T_Inr<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;inr&nbsp;T1&nbsp;t2&nbsp;:&nbsp;T1&nbsp;+&nbsp;T2<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;t0&nbsp;:&nbsp;T1&nbsp;+&nbsp;T2&nbsp;&nbsp;&nbsp;Γ,&nbsp;x1:&nbsp;T1&nbsp;⊢&nbsp;t1&nbsp;:&nbsp;T3&nbsp;&nbsp;&nbsp;Γ,&nbsp;x2:&nbsp;T2&nbsp;⊢&nbsp;t3&nbsp;:&nbsp;T3<br/>
+&nbsp;&nbsp;------------------------------------------------------------------&nbsp;T_Case<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;case&nbsp;t0&nbsp;of&nbsp;inl&nbsp;x1&nbsp;=&gt;&nbsp;t1&nbsp;|&nbsp;inr&nbsp;x2&nbsp;=&gt;&nbsp;t2&nbsp;:&nbsp;T3<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab38"></a><h3 class="section">Records</h3>
+
+<div class="paragraph"> </div>
+
+<a id="lab39"></a><h4 class="section">Syntax</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;t&nbsp;::=&nbsp;...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(same&nbsp;as&nbsp;before&nbsp;and&nbsp;...)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;{x=t,&nbsp;...,&nbsp;x=t}&nbsp;&nbsp;&nbsp;(record)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;t.x&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(projection)<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab40"></a><h4 class="section">Types</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;T&nbsp;::=&nbsp;...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(same&nbsp;as&nbsp;before&nbsp;and&nbsp;...)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;{x:&nbsp;T,&nbsp;...,&nbsp;x:&nbsp;T}&nbsp;(record&nbsp;type)<br/>
+&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+<span class="id" title="keyword">Record</span> <a id="recTy1" class="idref" href="#recTy1"><span class="id" title="record">recTy1</span></a> : <span class="id" title="keyword">Set</span> :=<br/>
+&nbsp;&nbsp;<a id="mkRecTy1" class="idref" href="#mkRecTy1"><span class="id" title="constructor">mkRecTy1</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a id="field1" class="idref" href="#field1"><span class="id" title="projection">field1</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="rec1" class="idref" href="#rec1"><span class="id" title="definition">rec1</span></a> : <a class="idref" href="lec_12_infer.html#recTy1"><span class="id" title="record">recTy1</span></a> :=<br/>
+&nbsp;&nbsp;{|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#field1"><span class="id" title="projection">field1</span></a> := 1<br/>
+&nbsp;&nbsp;|}.<br/>
+
+<br/>
+<span class="id" title="keyword">Record</span> <a id="recTy2" class="idref" href="#recTy2"><span class="id" title="record">recTy2</span></a> : <span class="id" title="keyword">Set</span> :=<br/>
+&nbsp;&nbsp;<a id="mkRecTy2" class="idref" href="#mkRecTy2"><span class="id" title="constructor">mkRecTy2</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a id="field2" class="idref" href="#field2"><span class="id" title="projection">field2</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a id="field3" class="idref" href="#field3"><span class="id" title="projection">field3</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">bool</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="rec2" class="idref" href="#rec2"><span class="id" title="definition">rec2</span></a> : <a class="idref" href="lec_12_infer.html#recTy2"><span class="id" title="record">recTy2</span></a> :=<br/>
+&nbsp;&nbsp;{|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#field2"><span class="id" title="projection">field2</span></a> := 1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#field3"><span class="id" title="projection">field3</span></a> := <span class="id" title="notation">true</span>;<br/>
+&nbsp;&nbsp;|}.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab41"></a><h4 class="section">Values</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;v&nbsp;::=&nbsp;...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(same&nbsp;as&nbsp;before&nbsp;and&nbsp;...)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;{x=v,&nbsp;...,&nbsp;x=v}&nbsp;&nbsp;&nbsp;(unit)<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab42"></a><h4 class="section">Operational Semantics</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;same&nbsp;operational&nbsp;rules&nbsp;and&nbsp;...<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;value&nbsp;v_1&nbsp;&nbsp;...&nbsp;&nbsp;value&nbsp;v_{i-1}&nbsp;&nbsp;t_i&nbsp;--&gt;&nbsp;t_i'<br/>
+&nbsp;&nbsp;&nbsp;----------------------------------------------------------------------------&nbsp;ST_Rec<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{x_1=v_1,&nbsp;...,&nbsp;x_i=v_{i-1},&nbsp;x_i=t_i,&nbsp;x_{i+1}=t_{i+1},&nbsp;...&nbsp;x_n=t_n}&nbsp;--&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{x_1=v_1,&nbsp;...,&nbsp;x_i=v_{i-1},&nbsp;x_i=t_i',&nbsp;x_{i+1}=t_{i+1},&nbsp;...&nbsp;x_n=t_n}<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;t&nbsp;--&gt;&nbsp;t'<br/>
+&nbsp;&nbsp;&nbsp;--------------------&nbsp;ST_ProjRec1<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;t.x&nbsp;--&gt;&nbsp;t'.x<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;value&nbsp;v_1&nbsp;&nbsp;...&nbsp;&nbsp;value&nbsp;v_n<br/>
+&nbsp;&nbsp;&nbsp;----------------------------------------------------&nbsp;ST_ProjRec2<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{x_1=v_1,&nbsp;...,&nbsp;x_i=v_i,&nbsp;...&nbsp;x_n=v_n}.x_i&nbsp;--&gt;&nbsp;v_i<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab43"></a><h4 class="section">Typing Rules</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;same&nbsp;typing&nbsp;rules&nbsp;and&nbsp;...<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;t_1&nbsp;:&nbsp;T_1&nbsp;&nbsp;...&nbsp;Γ&nbsp;⊢&nbsp;t_n&nbsp;:&nbsp;T_n&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;---------------------------------------------------------&nbsp;T_Rec<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;{x_1=t_1,&nbsp;...,&nbsp;x_n=t_n}&nbsp;:&nbsp;{x_1:T_1,&nbsp;...,&nbsp;x_n:&nbsp;T_n}<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab44"></a><h3 class="section">Reference Types</h3>
+
+<div class="paragraph"> </div>
+
+<a id="lab45"></a><h4 class="section">Syntax</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;t&nbsp;::=&nbsp;...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(same&nbsp;as&nbsp;before&nbsp;and&nbsp;...)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;ref&nbsp;t&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(create&nbsp;reference)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;!t&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(read&nbsp;reference)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;t&nbsp;:=&nbsp;t&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(write&nbsp;reference)<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab46"></a><h4 class="section">Types</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;T&nbsp;::=&nbsp;...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(same&nbsp;as&nbsp;before&nbsp;and&nbsp;...)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;Ref&nbsp;t&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(reference&nbsp;type)<br/>
+&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab47"></a><h4 class="section">Examples?</h4>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Coq does not have references!
+
+</li>
+<li> We can use a programming model called <i>monads</i> to model state.
+
+</li>
+<li> This is a programming model that is used in Haskell.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+ 
+<div class="paragraph"> </div>
+
+<a id="lab48"></a><h4 class="section">Stores</h4>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> A <i>store</i>, or computer memory, is modeled as a list of terms.
+
+</li>
+<li> Each cell can be accessed by referencing it's <i>location</i>.
+
+</li>
+<li> Thus a <i>location</i> can be modeled as a natural number.
+
+</li>
+<li> This should remind of us the identifiers from IMP which were modeled as strings.
+
+</li>
+</ul>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;---------------<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;|&nbsp;|&nbsp;|&nbsp;|&nbsp;|&nbsp;|&nbsp;|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;---------------<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;^<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;location<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab49"></a><h4 class="section">Values</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;v&nbsp;::=&nbsp;...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(same&nbsp;as&nbsp;before&nbsp;and&nbsp;...)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;loc&nbsp;l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(location)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab50"></a><h4 class="section">Operational semantics</h4>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Just like IMP, we now need to define operational semantics involving
+     transformations on state.
+
+</li>
+<li> With STLC + references, we will also need to involve the term reduction.
+
+</li>
+<li> Thus every operational rule will transform pairs of states and terms
+     to pairs of states and terms.
+
+</li>
+</ul>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(σ,&nbsp;t)&nbsp;--&gt;&nbsp;(σ'&nbsp;,t')<br/>
+&nbsp;&nbsp;&nbsp;--------------------------------&nbsp;ST_Ref1<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(σ,&nbsp;ref&nbsp;t)&nbsp;--&gt;&nbsp;(σ',&nbsp;ref&nbsp;t')<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;value&nbsp;v&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;σ'&nbsp;=&nbsp;σ&nbsp;++&nbsp;<span class="inlinecode"><span class="id" title="var">v</span></span><br/>
+&nbsp;&nbsp;&nbsp;-------------------------------------------&nbsp;ST_Ref2<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(σ,&nbsp;ref&nbsp;v)&nbsp;--&gt;&nbsp;(σ',&nbsp;loc&nbsp;(length&nbsp;σ'))<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(σ,&nbsp;t)&nbsp;--&gt;&nbsp;(σ&nbsp;,t')<br/>
+&nbsp;&nbsp;&nbsp;--------------------------------&nbsp;ST_Deref1<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(σ,&nbsp;!t)&nbsp;--&gt;&nbsp;(σ,&nbsp;!t')<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;l&nbsp;&lt;&nbsp;length&nbsp;σ<br/>
+&nbsp;&nbsp;&nbsp;--------------------------------&nbsp;ST_Deref2<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(σ,&nbsp;!loc&nbsp;l)&nbsp;--&gt;&nbsp;(σ,&nbsp;σ<span class="inlinecode"><span class="id" title="var">l</span></span>)<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(σ,&nbsp;t1)&nbsp;--&gt;&nbsp;(σ,&nbsp;t1')<br/>
+&nbsp;&nbsp;&nbsp;------------------------------------&nbsp;ST_Assign1<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(σ,&nbsp;t1&nbsp;:=&nbsp;t2)&nbsp;--&gt;&nbsp;(σ,&nbsp;t1'&nbsp;:=&nbsp;t2)<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;value&nbsp;v1&nbsp;&nbsp;&nbsp;(σ,&nbsp;t2)&nbsp;--&gt;&nbsp;(σ,&nbsp;t2')<br/>
+&nbsp;&nbsp;&nbsp;------------------------------------&nbsp;ST_Assign2<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(σ,&nbsp;v1&nbsp;:=&nbsp;t2)&nbsp;--&gt;&nbsp;(σ,&nbsp;v1&nbsp;:=&nbsp;t2')<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;value&nbsp;v2&nbsp;&nbsp;&nbsp;σ'&nbsp;=&nbsp;update&nbsp;σ&nbsp;l&nbsp;v2<br/>
+&nbsp;&nbsp;&nbsp;------------------------------------&nbsp;ST_Assign3<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(σ,&nbsp;loc&nbsp;l&nbsp;:=&nbsp;v2)&nbsp;--&gt;&nbsp;(σ',&nbsp;())<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab51"></a><h4 class="section">Store Typings Wrong</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ;&nbsp;σ&nbsp;⊢&nbsp;σ<span class="inlinecode"><span class="id" title="var">l</span></span>&nbsp;:&nbsp;T<br/>
+&nbsp;&nbsp;&nbsp;--------------------------&nbsp;WrongRef<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ;&nbsp;σ&nbsp;⊢&nbsp;loc&nbsp;l&nbsp;:&nbsp;Ref&nbsp;T<br/>
+*)</span><br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Intuitively, we might want to say that the type of a location is the
+      the type of the term stored in that cell.
+
+</li>
+<li> However, this rule fails to deal with cycles.
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab52"></a><h4 class="section">Infinite Derivation with Cycles</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;Suppose&nbsp;σ&nbsp;=&nbsp;<span class="inlinecode">\<span class="id" title="var">x</span>:<span class="id" title="var">unit</span>.</span> <span class="inlinecode">!(<span class="id" title="var">loc</span></span> <span class="inlinecode">1),</span> <span class="inlinecode">\<span class="id" title="var">x</span>:<span class="id" title="var">unit</span>.</span> <span class="inlinecode">!(<span class="id" title="var">loc</span></span> <span class="inlinecode">0)</span><br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;-------------------------------------------------------------------&nbsp;WrongRef<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ,&nbsp;x:&nbsp;unit,&nbsp;x:&nbsp;unit;&nbsp;σ&nbsp;⊢&nbsp;!loc&nbsp;0&nbsp;:&nbsp;T3<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;-------------------------------------------------------------------&nbsp;Abs<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ,&nbsp;x:&nbsp;unit;&nbsp;σ&nbsp;⊢&nbsp;\x:unit.&nbsp;!(loc&nbsp;0)&nbsp;:&nbsp;unit&nbsp;-&gt;&nbsp;T3<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;-------------------------------------------------------------------&nbsp;WrongRef<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ,&nbsp;x:&nbsp;unit;&nbsp;σ&nbsp;⊢&nbsp;!(loc&nbsp;1)&nbsp;x&nbsp;:&nbsp;T2<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;-------------------------------------------------------------------&nbsp;Abs<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ;&nbsp;σ&nbsp;⊢&nbsp;\x:unit.&nbsp;!(loc&nbsp;1)&nbsp;:&nbsp;unit&nbsp;-&gt;&nbsp;T2&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;-------------------------------------------------------------------&nbsp;WrongRef<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ;&nbsp;σ&nbsp;⊢&nbsp;!(loc&nbsp;0)&nbsp;:&nbsp;Ref&nbsp;T1<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab53"></a><h4 class="section">Store Typing</h4>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> We will need to introduce an idea called a *store typing* Σ.
+
+</li>
+<li> A store typing maps each location to a type.
+
+</li>
+<li> This breaks the cyclic self-reference with using a concrete store σ.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ;&nbsp;Σ&nbsp;⊢&nbsp;Σ<span class="inlinecode"><span class="id" title="var">l</span></span>&nbsp;:&nbsp;T<br/>
+&nbsp;&nbsp;&nbsp;--------------------------&nbsp;TLoc<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ;&nbsp;Σ&nbsp;⊢&nbsp;loc&nbsp;l&nbsp;:&nbsp;Ref&nbsp;T<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ;&nbsp;Σ&nbsp;⊢&nbsp;t&nbsp;:&nbsp;T<br/>
+&nbsp;&nbsp;&nbsp;--------------------------&nbsp;TRef<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ;&nbsp;Σ&nbsp;⊢&nbsp;ref&nbsp;t&nbsp;:&nbsp;Ref&nbsp;T<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ;&nbsp;Σ&nbsp;⊢&nbsp;t&nbsp;:&nbsp;Ref&nbsp;T<br/>
+&nbsp;&nbsp;&nbsp;--------------------------&nbsp;TDeref<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ;&nbsp;Σ&nbsp;⊢&nbsp;!t&nbsp;:&nbsp;T<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ;&nbsp;Σ&nbsp;⊢&nbsp;t1&nbsp;:&nbsp;Ref&nbsp;T&nbsp;&nbsp;&nbsp;&nbsp;Γ;&nbsp;Σ&nbsp;⊢&nbsp;t2&nbsp;:&nbsp;T<br/>
+&nbsp;&nbsp;&nbsp;------------------------------------------&nbsp;TAssign<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ;&nbsp;Σ&nbsp;⊢&nbsp;t1&nbsp;:=&nbsp;t2&nbsp;:&nbsp;unit<br/>
+&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab54"></a><h4 class="section">Fixing Infinite Derivations with Store Typings</h4>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Suppose σ = <span class="inlinecode">\<span class="id" title="var">x</span>:<span class="id" title="var">unit</span>.</span> <span class="inlinecode">!(<span class="id" title="var">loc</span></span> <span class="inlinecode">1),</span> <span class="inlinecode">\<span class="id" title="var">x</span>:<span class="id" title="var">unit</span>.</span> <span class="inlinecode">!(<span class="id" title="var">loc</span></span> <span class="inlinecode">0)</span>
+
+</li>
+<li> We can use Σ = <span class="inlinecode"><span class="id" title="var">unit</span></span> <span class="inlinecode">-&gt;</span> <span class="inlinecode"><span class="id" title="var">unit</span></span> <span class="inlinecode">-&gt;</span> <span class="inlinecode"><span class="id" title="var">unit</span>,</span> <span class="inlinecode"><span class="id" title="var">unit</span></span> <span class="inlinecode">-&gt;</span> <span class="inlinecode"><span class="id" title="var">unit</span></span> <span class="inlinecode">-&gt;</span> <span class="inlinecode"><span class="id" title="var">unit</span></span>
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+ 
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ;&nbsp;Σ&nbsp;⊢&nbsp;Σ<span class="inlinecode">0</span>&nbsp;:&nbsp;unit&nbsp;-&gt;&nbsp;unit&nbsp;-&gt;&nbsp;unit<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;-------------------------------------------------------------------&nbsp;WrongRef<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ;&nbsp;Σ&nbsp;⊢&nbsp;!(loc&nbsp;0)&nbsp;:&nbsp;Ref&nbsp;(unit&nbsp;-&gt;&nbsp;unit&nbsp;-&gt;&nbsp;unit)<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab55"></a><h4 class="section">Progress and Preservation?</h4>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Unlike all the previous extensions, references change our
+     operational semantics and typing relation substantially.
+
+</li>
+<li> Consequently, we might wonder if progress and preservation still hold.
+
+</li>
+<li> First, how do we even state progress and preservation?
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+ 
+<div class="paragraph"> </div>
+
+<a id="lab56"></a><h4 class="section">Preservation Wrong</h4>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> A first attempt at phrasing preservation might look like the following:
+
+<div class="paragraph"> </div>
+
+     ∀ Σ T t σ t' σ',
+       empty ; Σ ⊢ t : T -&gt;
+       (σ, t) --&gt; (σ', t') -&gt;
+       empty ; Σ ⊢ t' : T.
+
+<div class="paragraph"> </div>
+
+
+</li>
+<li> This isn't quite right because we are not relating the store typing Σ
+     and a concrete store σ.
+
+</li>
+<li> We will need an extra condition that relates the two.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+ 
+<div class="paragraph"> </div>
+
+<a id="lab57"></a><h4 class="section">Well-Formed Stores</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dom(Σ)&nbsp;=&nbsp;dom(σ)&nbsp;&nbsp;&nbsp;∀&nbsp;l&nbsp;\in&nbsp;dom(σ),&nbsp;empty;&nbsp;Σ&nbsp;⊢&nbsp;σ<span class="inlinecode"><span class="id" title="var">l</span></span>&nbsp;:&nbsp;Σ<span class="inlinecode"><span class="id" title="var">l</span></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;-------------------------------------------------------------<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Σ&nbsp;⊢&nbsp;σ<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab58"></a><h4 class="section">Preservation Wrong 2</h4>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> A second attempt at phrasing preservation might look like the following:
+
+<div class="paragraph"> </div>
+
+     ∀ Σ T t σ t' σ',
+       Σ ⊢ σ -&gt;
+       empty ; Σ ⊢ t : T -&gt;
+       (σ, t) --&gt; (σ', t') -&gt;
+       empty ; Σ ⊢ t' : T.
+
+<div class="paragraph"> </div>
+
+
+</li>
+<li> The reason this is wrong is because ref t creates a larger store.
+
+</li>
+<li> Similar to a "weakening" lemma on contexts, we need to define
+     extensions of store typings.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+ 
+<div class="paragraph"> </div>
+
+<a id="lab59"></a><h4 class="section">Preservation Right</h4>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> The correct statement of preservation is given below:
+
+<div class="paragraph"> </div>
+
+     ∀ Σ T t σ t' σ',
+       Σ ⊢ σ -&gt;
+       empty ; Σ ⊢ t : T -&gt;
+       (σ, t) --&gt; (σ', t') -&gt;
+       ∃ Σ',
+         Σ' ⊢ σ' /\
+         Σ ⊆ Σ' /\
+         empty ; Σ ⊢ t' : T.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+ 
+<div class="paragraph"> </div>
+
+<a id="lab60"></a><h2 class="section">Complex Types</h2>
+
+<div class="paragraph"> </div>
+
+<a id="lab61"></a><h3 class="section">Parametric Polymorphism</h3>
+
+<div class="paragraph"> </div>
+
+<a id="lab62"></a><h4 class="section">Syntax</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;t&nbsp;::=&nbsp;...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(same&nbsp;as&nbsp;before&nbsp;and&nbsp;...)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;ΛX.t&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(type&nbsp;abstraction)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;t<span class="inlinecode"><span class="id" title="var">T</span></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(type&nbsp;application)<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab63"></a><h4 class="section">Types</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;T&nbsp;::=&nbsp;...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(same&nbsp;as&nbsp;before&nbsp;and&nbsp;...)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;∀X.T&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(polymorphic&nbsp;type)<br/>
+&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="id" class="idref" href="#id"><span class="id" title="definition">id</span></a>: <span class="id" title="keyword">forall</span> <a id="A:13" class="idref" href="#A:13"><span class="id" title="binder">A</span></a>: <span class="id" title="keyword">Type</span>, <a class="idref" href="lec_12_infer.html#A:13"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_12_infer.html#A:13"><span class="id" title="variable">A</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> (<a id="A:14" class="idref" href="#A:14"><span class="id" title="binder">A</span></a>: <span class="id" title="keyword">Type</span>) =&gt; <span class="id" title="keyword">fun</span> (<a id="x:15" class="idref" href="#x:15"><span class="id" title="binder">x</span></a>: <a class="idref" href="lec_12_infer.html#A:14"><span class="id" title="variable">A</span></a>) =&gt; <a class="idref" href="lec_12_infer.html#x:15"><span class="id" title="variable">x</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="id'" class="idref" href="#id'"><span class="id" title="definition">id'</span></a> (<a id="A:16" class="idref" href="#A:16"><span class="id" title="binder">A</span></a>: <span class="id" title="keyword">Type</span>) (<a id="x:17" class="idref" href="#x:17"><span class="id" title="binder">x</span></a>: <a class="idref" href="lec_12_infer.html#A:16"><span class="id" title="variable">A</span></a>): <a class="idref" href="lec_12_infer.html#A:16"><span class="id" title="variable">A</span></a> :=<br/>
+&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#x:17"><span class="id" title="variable">x</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="swap" class="idref" href="#swap"><span class="id" title="definition">swap</span></a>: <span class="id" title="keyword">forall</span> <a id="A:18" class="idref" href="#A:18"><span class="id" title="binder">A</span></a>: <span class="id" title="keyword">Type</span>, <span class="id" title="keyword">forall</span> <a id="B:19" class="idref" href="#B:19"><span class="id" title="binder">B</span></a>: <span class="id" title="keyword">Type</span>, <a class="idref" href="lec_12_infer.html#A:18"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">*</span></a> <a class="idref" href="lec_12_infer.html#B:19"><span class="id" title="variable">B</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_12_infer.html#B:19"><span class="id" title="variable">B</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">*</span></a> <a class="idref" href="lec_12_infer.html#A:18"><span class="id" title="variable">A</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> (<a id="A:20" class="idref" href="#A:20"><span class="id" title="binder">A</span></a>: <span class="id" title="keyword">Type</span>) =&gt; <span class="id" title="keyword">fun</span> (<a id="B:21" class="idref" href="#B:21"><span class="id" title="binder">B</span></a>: <span class="id" title="keyword">Type</span>) =&gt; <span class="id" title="keyword">fun</span> (<a id="p:22" class="idref" href="#p:22"><span class="id" title="binder">p</span></a>: <a class="idref" href="lec_12_infer.html#A:20"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">*</span></a> <a class="idref" href="lec_12_infer.html#B:21"><span class="id" title="variable">B</span></a>) =&gt; <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">(</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#snd"><span class="id" title="definition">snd</span></a> <a class="idref" href="lec_12_infer.html#p:22"><span class="id" title="variable">p</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#fst"><span class="id" title="definition">fst</span></a> <a class="idref" href="lec_12_infer.html#p:22"><span class="id" title="variable">p</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">)</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="swap'" class="idref" href="#swap'"><span class="id" title="definition">swap'</span></a> (<a id="A:23" class="idref" href="#A:23"><span class="id" title="binder">A</span></a> <a id="B:24" class="idref" href="#B:24"><span class="id" title="binder">B</span></a>: <span class="id" title="keyword">Type</span>) (<a id="p:25" class="idref" href="#p:25"><span class="id" title="binder">p</span></a>: <a class="idref" href="lec_12_infer.html#A:23"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">*</span></a> <a class="idref" href="lec_12_infer.html#B:24"><span class="id" title="variable">B</span></a>): <a class="idref" href="lec_12_infer.html#B:24"><span class="id" title="variable">B</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">*</span></a> <a class="idref" href="lec_12_infer.html#A:23"><span class="id" title="variable">A</span></a> :=<br/>
+&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">(</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#snd"><span class="id" title="definition">snd</span></a> <a class="idref" href="lec_12_infer.html#p:25"><span class="id" title="variable">p</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#fst"><span class="id" title="definition">fst</span></a> <a class="idref" href="lec_12_infer.html#p:25"><span class="id" title="variable">p</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">)</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab64"></a><h4 class="section">Values</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;v&nbsp;::=&nbsp;...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(same&nbsp;as&nbsp;before&nbsp;and&nbsp;...)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;ΛX.t&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(type&nbsp;abstraction)<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab65"></a><h4 class="section">Operational semantics</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;same&nbsp;operational&nbsp;rules&nbsp;and&nbsp;...<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;----------------------------&nbsp;ST_TypeRed<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ΛX.t)<span class="inlinecode"><span class="id" title="var">T</span></span>&nbsp;--&gt;&nbsp;<span class="inlinecode"><span class="id" title="var">X</span>:=<span class="id" title="var">T</span></span>t<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab66"></a><h4 class="section">Type abstraction contexts</h4>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Similar to lambda abstractions, we need to ensure that our type variables
+     are well-formed.
+
+</li>
+<li> We do this with type variable contexts Δ, which is a set of type variables
+     in scope.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<a id="lab67"></a><h4 class="section">Typing rules</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;similar&nbsp;typing&nbsp;rules&nbsp;where&nbsp;we&nbsp;use&nbsp;Δ&nbsp;and<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Δ,&nbsp;X;&nbsp;Γ&nbsp;⊢&nbsp;t&nbsp;:&nbsp;T&nbsp;&nbsp;&nbsp;fv(T)&nbsp;⊆&nbsp;Δ,&nbsp;X<br/>
+&nbsp;&nbsp;------------------------------------&nbsp;T_TypeAbs<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Δ;&nbsp;Γ&nbsp;⊢&nbsp;ΛX.t&nbsp;:&nbsp;∀X.T<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Δ;&nbsp;Γ&nbsp;⊢&nbsp;t&nbsp;:&nbsp;∀X.T1&nbsp;&nbsp;&nbsp;fv(T1)&nbsp;⊆&nbsp;Δ<br/>
+&nbsp;&nbsp;------------------------------------&nbsp;T_TypeApp<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Δ;&nbsp;Γ&nbsp;⊢&nbsp;t<span class="inlinecode"><span class="id" title="var">T2</span></span>&nbsp;:&nbsp;<span class="inlinecode"><span class="id" title="var">X</span></span> <span class="inlinecode">:=</span> <span class="inlinecode"><span class="id" title="var">T2</span></span>T1<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab68"></a><h3 class="section">Subtyping</h3>
+
+<div class="paragraph"> </div>
+
+<a id="lab69"></a><h4 class="section">Subsumption</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;t&nbsp;:&nbsp;T1&nbsp;&nbsp;&nbsp;T1&nbsp;≤&nbsp;T2<br/>
+&nbsp;&nbsp;--------------------------------&nbsp;T_Subsume<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;t:&nbsp;T2<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab70"></a><h4 class="section">Subtyping structural rules</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+<br/>
+&nbsp;&nbsp;--------------&nbsp;Refl<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;T&nbsp;≤&nbsp;T<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;T1&nbsp;≤&nbsp;T2&nbsp;&nbsp;&nbsp;&nbsp;T2&nbsp;≤&nbsp;T3<br/>
+&nbsp;&nbsp;-------------------------&nbsp;Trans<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;T1&nbsp;≤&nbsp;T3<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab71"></a><h4 class="section">Subtyping on Records</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;perm&nbsp;is&nbsp;permutation<br/>
+&nbsp;&nbsp;--------------------------------------------------------------------&nbsp;Sub_REc<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{x_1=t_1,&nbsp;...,&nbsp;x_{n+k}=t_{n+k}}&nbsp;≤&nbsp;perm({x_1:T_1,&nbsp;...,&nbsp;x_n:&nbsp;T_n})<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab72"></a><h4 class="section">Subtyping on Products</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;T1&nbsp;≤&nbsp;T1'&nbsp;&nbsp;&nbsp;&nbsp;T2&nbsp;≤&nbsp;T2'<br/>
+&nbsp;&nbsp;-----------------------------&nbsp;Sub_Prod<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(T1,&nbsp;T2)&nbsp;≤&nbsp;(T1',&nbsp;T2')<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab73"></a><h4 class="section">Subtyping on Functions</h4>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;T1'&nbsp;≤&nbsp;T1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;T2&nbsp;≤&nbsp;T2'<br/>
+&nbsp;&nbsp;-----------------------------&nbsp;Sub_Prod<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;T1&nbsp;-&gt;&nbsp;T2&nbsp;≤&nbsp;T1'&nbsp;-&gt;&nbsp;T2'<br/>
+*)</span><br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Contravariant in input type
+
+</li>
+<li> Covariant in return type
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab74"></a><h2 class="section">Type-Checking</h2>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> The typing rules give us a way to separate well-typed terms from
+     stuck terms.
+
+</li>
+<li> But we don't have an algorithm.
+
+</li>
+<li> We now show that we can make this algorithmic by giving a
+     <i>type-checking</i> algorithm
+
+</li>
+</ul>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Fixpoint</span> <a id="eqb_ty" class="idref" href="#eqb_ty"><span class="id" title="definition">eqb_ty</span></a> (<a id="T1:26" class="idref" href="#T1:26"><span class="id" title="binder">T1</span></a> <a id="T2:27" class="idref" href="#T2:27"><span class="id" title="binder">T2</span></a>:<span class="id" title="inductive">ty</span>) : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">bool</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="lec_12_infer.html#T1:26"><span class="id" title="variable">T1</span></a>,<a class="idref" href="lec_12_infer.html#T2:27"><span class="id" title="variable">T2</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;| <span class="id" title="notation">&lt;{</span> <span class="id" title="notation">Bool</span> <span class="id" title="notation">}&gt;</span> , <span class="id" title="notation">&lt;{</span> <span class="id" title="notation">Bool</span> <span class="id" title="notation">}&gt;</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">true</span><br/>
+&nbsp;&nbsp;| <span class="id" title="notation">&lt;{</span> <span class="id" title="var">T11</span> <span class="id" title="notation">-&gt;</span> <span class="id" title="var">T12</span> <span class="id" title="notation">}&gt;</span>, <span class="id" title="notation">&lt;{</span> <span class="id" title="var">T21</span> <span class="id" title="notation">-&gt;</span> <span class="id" title="var">T22</span> <span class="id" title="notation">}&gt;</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#andb"><span class="id" title="definition">andb</span></a> (<a class="idref" href="lec_12_infer.html#eqb_ty:28"><span class="id" title="definition">eqb_ty</span></a> <span class="id" title="var">T11</span> <span class="id" title="var">T21</span>) (<a class="idref" href="lec_12_infer.html#eqb_ty:28"><span class="id" title="definition">eqb_ty</span></a> <span class="id" title="var">T12</span> <span class="id" title="var">T22</span>)<br/>
+&nbsp;&nbsp;| <span class="id" title="var">_</span>,<span class="id" title="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">false</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="eqb_ty_refl" class="idref" href="#eqb_ty_refl"><span class="id" title="lemma">eqb_ty_refl</span></a> : <span class="id" title="keyword">forall</span> <a id="T:31" class="idref" href="#T:31"><span class="id" title="binder">T</span></a>,<br/>
+&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#eqb_ty"><span class="id" title="definition">eqb_ty</span></a> <a class="idref" href="lec_12_infer.html#T:31"><span class="id" title="variable">T</span></a> <a class="idref" href="lec_12_infer.html#T:31"><span class="id" title="variable">T</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <span class="id" title="notation">true</span>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span> <span class="id" title="var">T</span>. <span class="id" title="tactic">induction</span> <span class="id" title="var">T</span>; <span class="id" title="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="var">IHT1</span>. <span class="id" title="tactic">rewrite</span> <span class="id" title="var">IHT2</span>. <span class="id" title="tactic">reflexivity</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="eqb_ty__eq" class="idref" href="#eqb_ty__eq"><span class="id" title="lemma">eqb_ty__eq</span></a> : <span class="id" title="keyword">forall</span> <a id="T1:32" class="idref" href="#T1:32"><span class="id" title="binder">T1</span></a> <a id="T2:33" class="idref" href="#T2:33"><span class="id" title="binder">T2</span></a>,<br/>
+&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#eqb_ty"><span class="id" title="definition">eqb_ty</span></a> <a class="idref" href="lec_12_infer.html#T1:32"><span class="id" title="variable">T1</span></a> <a class="idref" href="lec_12_infer.html#T2:33"><span class="id" title="variable">T2</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <span class="id" title="notation">true</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_12_infer.html#T1:32"><span class="id" title="variable">T1</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="lec_12_infer.html#T2:33"><span class="id" title="variable">T2</span></a>.<br/>
+<span class="id" title="keyword">Proof</span> <span class="id" title="keyword">with</span> <span class="id" title="tactic">auto</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span> <span class="id" title="var">T1</span>. <span class="id" title="tactic">induction</span> <span class="id" title="var">T1</span>; <span class="id" title="tactic">intros</span> <span class="id" title="var">T2</span> <span class="id" title="var">Hbeq</span>; <span class="id" title="tactic">destruct</span> <span class="id" title="var">T2</span>; <span class="id" title="tactic">inversion</span> <span class="id" title="var">Hbeq</span>.<br/>
+&nbsp;&nbsp;- <span class="comment">(*&nbsp;T1=Bool&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;- <span class="comment">(*&nbsp;T1&nbsp;=&nbsp;T1_1-&gt;T1_2&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Bool.Bool.html#andb_true_iff"><span class="id" title="lemma">andb_true_iff</span></a> <span class="id" title="tactic">in</span> <span class="id" title="var">H0</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">inversion</span> <span class="id" title="var">H0</span> <span class="id" title="keyword">as</span> [<span class="id" title="var">Hbeq1</span> <span class="id" title="var">Hbeq2</span>].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <span class="id" title="var">IHT1_1</span> <span class="id" title="tactic">in</span> <span class="id" title="var">Hbeq1</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <span class="id" title="var">IHT1_2</span> <span class="id" title="tactic">in</span> <span class="id" title="var">Hbeq2</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">subst</span>...<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Fixpoint</span> <a id="type_check" class="idref" href="#type_check"><span class="id" title="definition">type_check</span></a> (<a id="Gamma:34" class="idref" href="#Gamma:34"><span class="id" title="binder">Gamma</span></a> : <span class="id" title="definition">context</span>) (<a id="t:35" class="idref" href="#t:35"><span class="id" title="binder">t</span></a> : <span class="id" title="inductive">tm</span>) : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#option"><span class="id" title="inductive">option</span></a> <span class="id" title="inductive">ty</span> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="lec_12_infer.html#t:35"><span class="id" title="variable">t</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;| <span class="id" title="constructor">tm_var</span> <span class="id" title="var">x</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#Gamma:34"><span class="id" title="variable">Gamma</span></a> <span class="id" title="var">x</span><br/>
+&nbsp;&nbsp;| <span class="id" title="notation">&lt;{</span><span class="id" title="notation">\</span><span class="id" title="var">x</span><span class="id" title="notation">:</span><span class="id" title="var">T2</span><span class="id" title="notation">,</span> <span class="id" title="var">t1</span><span class="id" title="notation">}&gt;</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="lec_12_infer.html#type_check:36"><span class="id" title="definition">type_check</span></a> (<span class="id" title="var">x</span> <span class="id" title="notation">|-&gt;</span> <span class="id" title="var">T2</span> <span class="id" title="notation">;</span> <a class="idref" href="lec_12_infer.html#Gamma:34"><span class="id" title="variable">Gamma</span></a>) <span class="id" title="var">t1</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <span class="id" title="var">T1</span> =&gt; <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <span class="id" title="notation">&lt;{</span><span class="id" title="var">T2</span> <span class="id" title="notation">-&gt;</span> <span class="id" title="var">T1</span><span class="id" title="notation">}&gt;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#None"><span class="id" title="constructor">None</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
+&nbsp;&nbsp;| <span class="id" title="notation">&lt;{</span><span class="id" title="var">t1</span> <span class="id" title="var">t2</span><span class="id" title="notation">}&gt;</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="lec_12_infer.html#type_check:36"><span class="id" title="definition">type_check</span></a> <a class="idref" href="lec_12_infer.html#Gamma:34"><span class="id" title="variable">Gamma</span></a> <span class="id" title="var">t1</span>, <a class="idref" href="lec_12_infer.html#type_check:36"><span class="id" title="definition">type_check</span></a> <a class="idref" href="lec_12_infer.html#Gamma:34"><span class="id" title="variable">Gamma</span></a> <span class="id" title="var">t2</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <span class="id" title="notation">&lt;{</span><span class="id" title="var">T11</span> <span class="id" title="notation">-&gt;</span> <span class="id" title="var">T12</span><span class="id" title="notation">}&gt;</span>, <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <span class="id" title="var">T2</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <a class="idref" href="lec_12_infer.html#eqb_ty"><span class="id" title="definition">eqb_ty</span></a> <span class="id" title="var">T11</span> <span class="id" title="var">T2</span> <span class="id" title="keyword">then</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <span class="id" title="var">T12</span> <span class="id" title="keyword">else</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#None"><span class="id" title="constructor">None</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>,<span class="id" title="var">_</span> =&gt; <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#None"><span class="id" title="constructor">None</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
+&nbsp;&nbsp;| <span class="id" title="notation">&lt;{</span><span class="id" title="notation">true</span><span class="id" title="notation">}&gt;</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <span class="id" title="notation">&lt;{</span><span class="id" title="notation">Bool</span><span class="id" title="notation">}&gt;</span><br/>
+&nbsp;&nbsp;| <span class="id" title="notation">&lt;{</span><span class="id" title="notation">false</span><span class="id" title="notation">}&gt;</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <span class="id" title="notation">&lt;{</span><span class="id" title="notation">Bool</span><span class="id" title="notation">}&gt;</span><br/>
+&nbsp;&nbsp;| <span class="id" title="notation">&lt;{</span><span class="id" title="notation">if</span> <span class="id" title="var">guard</span> <span class="id" title="notation">then</span> <span class="id" title="var">t</span> <span class="id" title="notation">else</span> <span class="id" title="var">f</span><span class="id" title="notation">}&gt;</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="lec_12_infer.html#type_check:36"><span class="id" title="definition">type_check</span></a> <a class="idref" href="lec_12_infer.html#Gamma:34"><span class="id" title="variable">Gamma</span></a> <span class="id" title="var">guard</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <span class="id" title="notation">&lt;{</span><span class="id" title="notation">Bool</span><span class="id" title="notation">}&gt;</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="lec_12_infer.html#type_check:36"><span class="id" title="definition">type_check</span></a> <a class="idref" href="lec_12_infer.html#Gamma:34"><span class="id" title="variable">Gamma</span></a> <a class="idref" href="lec_12_infer.html#t:35"><span class="id" title="variable">t</span></a>, <a class="idref" href="lec_12_infer.html#type_check:36"><span class="id" title="definition">type_check</span></a> <a class="idref" href="lec_12_infer.html#Gamma:34"><span class="id" title="variable">Gamma</span></a> <span class="id" title="var">f</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <span class="id" title="var">T1</span>, <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <span class="id" title="var">T2</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <a class="idref" href="lec_12_infer.html#eqb_ty"><span class="id" title="definition">eqb_ty</span></a> <span class="id" title="var">T1</span> <span class="id" title="var">T2</span> <span class="id" title="keyword">then</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <span class="id" title="var">T1</span> <span class="id" title="keyword">else</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#None"><span class="id" title="constructor">None</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>,<span class="id" title="var">_</span> =&gt; <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#None"><span class="id" title="constructor">None</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#None"><span class="id" title="constructor">None</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Eval</span> <span class="id" title="tactic">compute</span> <span class="id" title="tactic">in</span> <a class="idref" href="lec_12_infer.html#type_check"><span class="id" title="definition">type_check</span></a> <span class="id" title="definition">empty</span> <span class="id" title="notation">&lt;{</span><span class="id" title="notation">true</span><span class="id" title="notation">}&gt;</span>.<br/>
+<span class="comment">(*&nbsp;==&gt;&nbsp;Some&nbsp;&lt;{&nbsp;Bool&nbsp;}&gt;&nbsp;*)</span><br/>
+
+<br/>
+<span class="id" title="keyword">Eval</span> <span class="id" title="tactic">compute</span> <span class="id" title="tactic">in</span> <a class="idref" href="lec_12_infer.html#type_check"><span class="id" title="definition">type_check</span></a> <span class="id" title="definition">empty</span> <span class="id" title="notation">&lt;{</span><span class="id" title="notation">\</span><span class="id" title="definition">x</span><span class="id" title="notation">:</span> <span class="id" title="notation">Bool</span><span class="id" title="notation">,</span> <span class="id" title="definition">x</span><span class="id" title="notation">}&gt;</span>.<br/>
+<span class="comment">(*&nbsp;==&gt;&nbsp;Some&nbsp;&lt;{&nbsp;Bool&nbsp;-&gt;&nbsp;Bool&nbsp;}&gt;&nbsp;*)</span><br/>
+
+<br/>
+<span class="id" title="keyword">Eval</span> <span class="id" title="tactic">compute</span> <span class="id" title="tactic">in</span> <a class="idref" href="lec_12_infer.html#type_check"><span class="id" title="definition">type_check</span></a> <span class="id" title="definition">empty</span> <span class="id" title="notation">&lt;{</span><span class="id" title="notation">\</span><span class="id" title="definition">x</span><span class="id" title="notation">:</span> <span class="id" title="notation">Bool</span><span class="id" title="notation">,</span> <span class="id" title="notation">\</span><span class="id" title="definition">x</span><span class="id" title="notation">:</span> <span class="id" title="notation">Bool</span><span class="id" title="notation">,</span> <span class="id" title="definition">x</span> <span class="id" title="definition">x</span><span class="id" title="notation">}&gt;</span>.<br/>
+<span class="comment">(*&nbsp;==&gt;&nbsp;None&nbsp;*)</span><br/>
+
+<br/>
+<span class="id" title="keyword">Eval</span> <span class="id" title="tactic">compute</span> <span class="id" title="tactic">in</span> <a class="idref" href="lec_12_infer.html#type_check"><span class="id" title="definition">type_check</span></a> <span class="id" title="definition">empty</span> <span class="id" title="notation">&lt;{</span><span class="id" title="notation">\</span><span class="id" title="definition">f</span><span class="id" title="notation">:</span> <span class="id" title="notation">Bool</span> <span class="id" title="notation">-&gt;</span> <span class="id" title="notation">Bool</span><span class="id" title="notation">,</span> <span class="id" title="notation">\</span><span class="id" title="definition">x</span><span class="id" title="notation">:</span> <span class="id" title="notation">Bool</span><span class="id" title="notation">,</span> <span class="id" title="definition">f</span> <span class="id" title="definition">x</span><span class="id" title="notation">}&gt;</span>.<br/>
+<span class="comment">(*&nbsp;==&gt;&nbsp;Some&nbsp;&lt;{&nbsp;(Bool&nbsp;-&gt;&nbsp;Bool)&nbsp;-&gt;&nbsp;Bool&nbsp;-&gt;&nbsp;Bool&nbsp;}&gt;&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> We should check that our algorithm and our typing rules match.
+
+</li>
+<li> We do this by showing that our type-checker is sound for the given
+     typing rules.
+
+</li>
+</ul>
+
+</div>
+<div class="code">
+<span class="id" title="keyword">Theorem</span> <a id="type_checking_sound" class="idref" href="#type_checking_sound"><span class="id" title="lemma">type_checking_sound</span></a> : <span class="id" title="keyword">forall</span> <a id="Gamma:38" class="idref" href="#Gamma:38"><span class="id" title="binder">Gamma</span></a> <a id="t:39" class="idref" href="#t:39"><span class="id" title="binder">t</span></a> <a id="T:40" class="idref" href="#T:40"><span class="id" title="binder">T</span></a>,<br/>
+&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#type_check"><span class="id" title="definition">type_check</span></a> <a class="idref" href="lec_12_infer.html#Gamma:38"><span class="id" title="variable">Gamma</span></a> <a class="idref" href="lec_12_infer.html#t:39"><span class="id" title="variable">t</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <a class="idref" href="lec_12_infer.html#T:40"><span class="id" title="variable">T</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#Gamma:38"><span class="id" title="variable">Gamma</span></a> <span class="id" title="notation">⊢</span> <a class="idref" href="lec_12_infer.html#t:39"><span class="id" title="variable">t</span></a> <span class="id" title="notation">\</span><span class="id" title="notation">in</span> <a class="idref" href="lec_12_infer.html#T:40"><span class="id" title="variable">T</span></a>.<br/>
+<span class="id" title="keyword">Proof</span> <span class="id" title="keyword">with</span> <span class="id" title="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span> <span class="id" title="var">Gamma</span> <span class="id" title="var">t</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">generalize</span> <span class="id" title="tactic">dependent</span> <span class="id" title="var">Gamma</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">induction</span> <span class="id" title="var">t</span>; <span class="id" title="tactic">intros</span> <span class="id" title="var">Gamma</span> <span class="id" title="var">T</span> <span class="id" title="var">Htc</span>; <span class="id" title="tactic">inversion</span> <span class="id" title="var">Htc</span>.<br/>
+&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;var&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rename</span> <span class="id" title="var">s</span> <span class="id" title="var">into</span> <span class="id" title="var">x</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> (<span class="id" title="var">Gamma</span> <span class="id" title="var">x</span>) <span class="id" title="var">eqn</span>:<span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rename</span> <span class="id" title="var">t</span> <span class="id" title="var">into</span> <span class="id" title="var">T'</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">inversion</span> <span class="id" title="var">H0</span>; <span class="id" title="tactic">subst</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">inversion</span> <span class="id" title="var">H0</span>.<br/>
+&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;app&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">remember</span> (<a class="idref" href="lec_12_infer.html#type_check"><span class="id" title="definition">type_check</span></a> <span class="id" title="var">Gamma</span> <span class="id" title="var">t1</span>) <span class="id" title="keyword">as</span> <span class="id" title="var">TO1</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">TO1</span> <span class="id" title="keyword">as</span> [<span class="id" title="var">T1</span>|].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">T1</span> <span class="id" title="keyword">as</span> [|<span class="id" title="var">T11</span> <span class="id" title="var">T12</span>].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">inversion</span> <span class="id" title="var">H0</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">remember</span> (<a class="idref" href="lec_12_infer.html#type_check"><span class="id" title="definition">type_check</span></a> <span class="id" title="var">Gamma</span> <span class="id" title="var">t2</span>) <span class="id" title="keyword">as</span> <span class="id" title="var">TO2</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">TO2</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> (<a class="idref" href="lec_12_infer.html#eqb_ty"><span class="id" title="definition">eqb_ty</span></a> <span class="id" title="var">T11</span> <span class="id" title="var">t</span>) <span class="id" title="var">eqn</span>: <span class="id" title="var">Heqb</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="lec_12_infer.html#eqb_ty__eq"><span class="id" title="lemma">eqb_ty__eq</span></a> <span class="id" title="tactic">in</span> <span class="id" title="var">Heqb</span>; <span class="id" title="tactic">subst</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">inversion</span> <span class="id" title="var">H0</span>; <span class="id" title="tactic">subst</span>; <span class="id" title="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">inversion</span> <span class="id" title="var">H0</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">inversion</span> <span class="id" title="var">H0</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">inversion</span> <span class="id" title="var">H0</span>.<br/>
+&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;abs&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rename</span> <span class="id" title="var">s</span> <span class="id" title="var">into</span> <span class="id" title="var">x</span>, <span class="id" title="var">t</span> <span class="id" title="var">into</span> <span class="id" title="var">T1</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">remember</span> (<span class="id" title="var">x</span> <span class="id" title="notation">|-&gt;</span> <span class="id" title="var">T1</span> <span class="id" title="notation">;</span> <span class="id" title="var">Gamma</span>) <span class="id" title="keyword">as</span> <span class="id" title="var">G'</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">remember</span> (<a class="idref" href="lec_12_infer.html#type_check"><span class="id" title="definition">type_check</span></a> <span class="id" title="var">G'</span> <span class="id" title="var">t0</span>) <span class="id" title="keyword">as</span> <span class="id" title="var">TO2</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">TO2</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">inversion</span> <span class="id" title="var">H0</span>; <span class="id" title="tactic">subst</span>. <span class="id" title="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">inversion</span> <span class="id" title="var">H0</span>.<br/>
+&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;tru&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;fls&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;test&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">remember</span> (<a class="idref" href="lec_12_infer.html#type_check"><span class="id" title="definition">type_check</span></a> <span class="id" title="var">Gamma</span> <span class="id" title="var">t1</span>) <span class="id" title="keyword">as</span> <span class="id" title="var">TOc</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">remember</span> (<a class="idref" href="lec_12_infer.html#type_check"><span class="id" title="definition">type_check</span></a> <span class="id" title="var">Gamma</span> <span class="id" title="var">t2</span>) <span class="id" title="keyword">as</span> <span class="id" title="var">TO1</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">remember</span> (<a class="idref" href="lec_12_infer.html#type_check"><span class="id" title="definition">type_check</span></a> <span class="id" title="var">Gamma</span> <span class="id" title="var">t3</span>) <span class="id" title="keyword">as</span> <span class="id" title="var">TO2</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">TOc</span> <span class="id" title="keyword">as</span> [<span class="id" title="var">Tc</span>|].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">Tc</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">TO1</span> <span class="id" title="keyword">as</span> [<span class="id" title="var">T1</span>|].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">TO2</span> <span class="id" title="keyword">as</span> [<span class="id" title="var">T2</span>|].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> (<a class="idref" href="lec_12_infer.html#eqb_ty"><span class="id" title="definition">eqb_ty</span></a> <span class="id" title="var">T1</span> <span class="id" title="var">T2</span>) <span class="id" title="var">eqn</span>:<span class="id" title="var">Heqb</span>. <span class="id" title="tactic">inversion</span> <span class="id" title="var">H0</span>; <span class="id" title="tactic">subst</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="lec_12_infer.html#eqb_ty__eq"><span class="id" title="lemma">eqb_ty__eq</span></a> <span class="id" title="tactic">in</span> <span class="id" title="var">Heqb</span>; <span class="id" title="tactic">subst</span>. <span class="id" title="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">inversion</span> <span class="id" title="var">H0</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">inversion</span> <span class="id" title="var">H0</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">inversion</span> <span class="id" title="var">H0</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">inversion</span> <span class="id" title="var">H0</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">inversion</span> <span class="id" title="var">H0</span>.<br/>
+&nbsp;&nbsp;}<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> We can also show completeness!
+
+</li>
+<li> That is, if there exists a derivation, our type-checker will verify it.
+
+</li>
+</ul>
+
+</div>
+<div class="code">
+<span class="id" title="keyword">Theorem</span> <a id="type_checking_complete" class="idref" href="#type_checking_complete"><span class="id" title="lemma">type_checking_complete</span></a> : <span class="id" title="keyword">forall</span> <a id="Gamma:41" class="idref" href="#Gamma:41"><span class="id" title="binder">Gamma</span></a> <a id="t:42" class="idref" href="#t:42"><span class="id" title="binder">t</span></a> <a id="T:43" class="idref" href="#T:43"><span class="id" title="binder">T</span></a>,<br/>
+&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#Gamma:41"><span class="id" title="variable">Gamma</span></a> <span class="id" title="notation">⊢</span> <a class="idref" href="lec_12_infer.html#t:42"><span class="id" title="variable">t</span></a> <span class="id" title="notation">\</span><span class="id" title="notation">in</span> <a class="idref" href="lec_12_infer.html#T:43"><span class="id" title="variable">T</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#type_check"><span class="id" title="definition">type_check</span></a> <a class="idref" href="lec_12_infer.html#Gamma:41"><span class="id" title="variable">Gamma</span></a> <a class="idref" href="lec_12_infer.html#t:42"><span class="id" title="variable">t</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <a class="idref" href="lec_12_infer.html#T:43"><span class="id" title="variable">T</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span> <span class="id" title="var">Gamma</span> <span class="id" title="var">t</span> <span class="id" title="var">T</span> <span class="id" title="var">Hty</span>.<br/>
+&nbsp;&nbsp;<span class="comment">(*&nbsp;Question:&nbsp;what&nbsp;should&nbsp;we&nbsp;do&nbsp;induction&nbsp;on?&nbsp;*)</span><br/>
+
+<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">induction</span> <span class="id" title="var">Hty</span>; <span class="id" title="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;T_Var&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> (<span class="id" title="var">Gamma</span> <span class="id" title="var">x</span>) <span class="id" title="var">eqn</span>:<span class="id" title="var">H0</span>; <span class="id" title="tactic">assumption</span>.<br/>
+&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;T_Abs&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="var">IHHty</span>; <span class="id" title="tactic">auto</span>.<br/>
+&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;{ <span class="comment">(*&nbsp;T_App&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="var">IHHty1</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="var">IHHty2</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> (<a class="idref" href="lec_12_infer.html#eqb_ty_refl"><span class="id" title="lemma">eqb_ty_refl</span></a> <span class="id" title="var">T2</span>); <span class="id" title="tactic">auto</span>.<br/>
+&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;T_True&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;T_False&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;T_If&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="var">IHHty1</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="var">IHHty2</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="var">IHHty3</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> (<a class="idref" href="lec_12_infer.html#eqb_ty_refl"><span class="id" title="lemma">eqb_ty_refl</span></a> <span class="id" title="var">T1</span>); <span class="id" title="tactic">auto</span>.<br/>
+&nbsp;&nbsp;}<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab75"></a><h2 class="section">Type-Inference</h2>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> The goal of type-inference is to have an algorithm that gives
+     us the types of terms without us having to write them down.
+
+</li>
+<li> We define a new syntax of types that contains guesses.
+
+</li>
+<li> We define a typing relation that generates *constraints* involving guesses.
+
+</li>
+<li> We solve for the constraints using *unification* producing a type substitution.
+
+</li>
+<li> The resulting type substitution gives us the types.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Module</span> <a id="TypeInfer" class="idref" href="#TypeInfer"><span class="id" title="module">TypeInfer</span></a>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Lists.List.html#"><span class="id" title="library">List</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Lists.ListSet.html#"><span class="id" title="library">Coq.Lists.ListSet</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab76"></a><h3 class="section">Updated Syntax for Types</h3>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="comment">(*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;T&nbsp;::=&nbsp;Bool<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;T&nbsp;-&gt;&nbsp;T<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;guess&nbsp;*)</span><br/>
+<br/>
+&nbsp;&nbsp;&nbsp;*)</span><br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Inductive</span> <a id="TypeInfer.ty" class="idref" href="#TypeInfer.ty"><span class="id" title="inductive">ty</span></a> : <span class="id" title="keyword">Type</span> :=<br/>
+&nbsp;&nbsp;| <a id="TypeInfer.Ty_Bool" class="idref" href="#TypeInfer.Ty_Bool"><span class="id" title="constructor">Ty_Bool</span></a> : <a class="idref" href="lec_12_infer.html#ty:44"><span class="id" title="inductive">ty</span></a>                <span class="comment">(*&nbsp;for&nbsp;the&nbsp;boolean&nbsp;values&nbsp;*)</span><br/>
+&nbsp;&nbsp;| <a id="TypeInfer.Ty_Arrow" class="idref" href="#TypeInfer.Ty_Arrow"><span class="id" title="constructor">Ty_Arrow</span></a> : <a class="idref" href="lec_12_infer.html#ty:44"><span class="id" title="inductive">ty</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_12_infer.html#ty:44"><span class="id" title="inductive">ty</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_12_infer.html#ty:44"><span class="id" title="inductive">ty</span></a>   <span class="comment">(*&nbsp;t1&nbsp;-&gt;&nbsp;t2,&nbsp;for&nbsp;the&nbsp;abstraction&nbsp;values&nbsp;*)</span><br/>
+&nbsp;&nbsp;| <a id="TypeInfer.Ty_Var" class="idref" href="#TypeInfer.Ty_Var"><span class="id" title="constructor">Ty_Var</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Strings.String.html#string"><span class="id" title="inductive">string</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_12_infer.html#ty:44"><span class="id" title="inductive">ty</span></a>       <span class="comment">(*&nbsp;guess&nbsp;*)</span><br/>
+&nbsp;&nbsp;.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab77"></a><h3 class="section">Types now have free variables</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> We could compute free variables in terms.
+
+</li>
+<li> Now that types have variables, we have a similar notion.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+   
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Fixpoint</span> <a id="TypeInfer.free_var" class="idref" href="#TypeInfer.free_var"><span class="id" title="definition">free_var</span></a> (<a id="t:46" class="idref" href="#t:46"><span class="id" title="binder">t</span></a>: <a class="idref" href="lec_12_infer.html#TypeInfer.ty"><span class="id" title="inductive">ty</span></a>) : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Lists.ListSet.html#set"><span class="id" title="definition">set</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Strings.String.html#string"><span class="id" title="inductive">string</span></a> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="lec_12_infer.html#t:46"><span class="id" title="variable">t</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Bool"><span class="id" title="constructor">Ty_Bool</span></a> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Lists.ListSet.html#empty_set"><span class="id" title="definition">empty_set</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Strings.String.html#string"><span class="id" title="inductive">string</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Arrow"><span class="id" title="constructor">Ty_Arrow</span></a> <span class="id" title="var">t1</span> <span class="id" title="var">t2</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Lists.ListSet.html#set_union"><span class="id" title="definition">set_union</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Strings.String.html#string_dec"><span class="id" title="definition">string_dec</span></a> (<a class="idref" href="lec_12_infer.html#free_var:47"><span class="id" title="definition">free_var</span></a> <span class="id" title="var">t1</span>) (<a class="idref" href="lec_12_infer.html#free_var:47"><span class="id" title="definition">free_var</span></a> <span class="id" title="var">t2</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Var"><span class="id" title="constructor">Ty_Var</span></a> <span class="id" title="var">X</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Lists.ListSet.html#set_add"><span class="id" title="definition">set_add</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Strings.String.html#string_dec"><span class="id" title="definition">string_dec</span></a> <span class="id" title="var">X</span> (<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Lists.ListSet.html#empty_set"><span class="id" title="definition">empty_set</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Strings.String.html#string"><span class="id" title="inductive">string</span></a>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab78"></a><h3 class="section">Terms use new Types</h3>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="comment">(*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;t&nbsp;::=&nbsp;x<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;t&nbsp;t<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;\x:&nbsp;T.&nbsp;t<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;true<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;false<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;if&nbsp;t&nbsp;t&nbsp;t&nbsp;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Inductive</span> <a id="TypeInfer.tm" class="idref" href="#TypeInfer.tm"><span class="id" title="inductive">tm</span></a> : <span class="id" title="keyword">Type</span> :=<br/>
+&nbsp;&nbsp;| <a id="TypeInfer.tm_var" class="idref" href="#TypeInfer.tm_var"><span class="id" title="constructor">tm_var</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Strings.String.html#string"><span class="id" title="inductive">string</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_12_infer.html#tm:49"><span class="id" title="inductive">tm</span></a><br/>
+&nbsp;&nbsp;| <a id="TypeInfer.tm_app" class="idref" href="#TypeInfer.tm_app"><span class="id" title="constructor">tm_app</span></a> : <a class="idref" href="lec_12_infer.html#tm:49"><span class="id" title="inductive">tm</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_12_infer.html#tm:49"><span class="id" title="inductive">tm</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_12_infer.html#tm:49"><span class="id" title="inductive">tm</span></a><br/>
+&nbsp;&nbsp;| <a id="TypeInfer.tm_abs" class="idref" href="#TypeInfer.tm_abs"><span class="id" title="constructor">tm_abs</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Strings.String.html#string"><span class="id" title="inductive">string</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_12_infer.html#TypeInfer.ty"><span class="id" title="inductive">ty</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_12_infer.html#tm:49"><span class="id" title="inductive">tm</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_12_infer.html#tm:49"><span class="id" title="inductive">tm</span></a>  <span class="comment">(*&nbsp;parameter&nbsp;augmented&nbsp;with&nbsp;type&nbsp;*)</span><br/>
+&nbsp;&nbsp;| <a id="TypeInfer.tm_true" class="idref" href="#TypeInfer.tm_true"><span class="id" title="constructor">tm_true</span></a> : <a class="idref" href="lec_12_infer.html#tm:49"><span class="id" title="inductive">tm</span></a><br/>
+&nbsp;&nbsp;| <a id="TypeInfer.tm_false" class="idref" href="#TypeInfer.tm_false"><span class="id" title="constructor">tm_false</span></a> : <a class="idref" href="lec_12_infer.html#tm:49"><span class="id" title="inductive">tm</span></a><br/>
+&nbsp;&nbsp;| <a id="TypeInfer.tm_if" class="idref" href="#TypeInfer.tm_if"><span class="id" title="constructor">tm_if</span></a> : <a class="idref" href="lec_12_infer.html#tm:49"><span class="id" title="inductive">tm</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_12_infer.html#tm:49"><span class="id" title="inductive">tm</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_12_infer.html#tm:49"><span class="id" title="inductive">tm</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_12_infer.html#tm:49"><span class="id" title="inductive">tm</span></a><br/>
+&nbsp;&nbsp;.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab79"></a><h3 class="section">Syntax for constraints</h3>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C&nbsp;::=&nbsp;T&nbsp;=&nbsp;T&nbsp;&nbsp;&nbsp;&nbsp;(type&nbsp;equality)<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Inductive</span> <a id="TypeInfer.constraint" class="idref" href="#TypeInfer.constraint"><span class="id" title="inductive">constraint</span></a> : <span class="id" title="keyword">Type</span> :=<br/>
+&nbsp;&nbsp;| <a id="TypeInfer.Ty_eq" class="idref" href="#TypeInfer.Ty_eq"><span class="id" title="constructor">Ty_eq</span></a> : <a class="idref" href="lec_12_infer.html#TypeInfer.ty"><span class="id" title="inductive">ty</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_12_infer.html#TypeInfer.ty"><span class="id" title="inductive">ty</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_12_infer.html#constraint:51"><span class="id" title="inductive">constraint</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab80"></a><h3 class="section">Free variables for constraints</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> We can collect the free variables in the types in a constraint.
+        and lists of constraints.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+   
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Fixpoint</span> <a id="TypeInfer.free_var_constraint" class="idref" href="#TypeInfer.free_var_constraint"><span class="id" title="definition">free_var_constraint</span></a> (<a id="c:53" class="idref" href="#c:53"><span class="id" title="binder">c</span></a>: <a class="idref" href="lec_12_infer.html#TypeInfer.constraint"><span class="id" title="inductive">constraint</span></a>) : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Lists.ListSet.html#set"><span class="id" title="definition">set</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Strings.String.html#string"><span class="id" title="inductive">string</span></a> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="lec_12_infer.html#c:53"><span class="id" title="variable">c</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_eq"><span class="id" title="constructor">Ty_eq</span></a> <span class="id" title="var">t</span> <span class="id" title="var">t'</span> =&gt; <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Lists.ListSet.html#set_union"><span class="id" title="definition">set_union</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Strings.String.html#string_dec"><span class="id" title="definition">string_dec</span></a> (<a class="idref" href="lec_12_infer.html#TypeInfer.free_var"><span class="id" title="definition">free_var</span></a> <span class="id" title="var">t</span>) (<a class="idref" href="lec_12_infer.html#TypeInfer.free_var"><span class="id" title="definition">free_var</span></a> <span class="id" title="var">t'</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="TypeInfer.free_var_constraints" class="idref" href="#TypeInfer.free_var_constraints"><span class="id" title="definition">free_var_constraints</span></a> (<a id="cs:56" class="idref" href="#cs:56"><span class="id" title="binder">cs</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="lec_12_infer.html#TypeInfer.constraint"><span class="id" title="inductive">constraint</span></a>) : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Lists.ListSet.html#set"><span class="id" title="definition">set</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Strings.String.html#string"><span class="id" title="inductive">string</span></a> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Lists.List.html#fold_left"><span class="id" title="definition">List.fold_left</span></a> (<span class="id" title="keyword">fun</span> <a id="acc:57" class="idref" href="#acc:57"><span class="id" title="binder">acc</span></a> <a id="x:58" class="idref" href="#x:58"><span class="id" title="binder">x</span></a> =&gt; <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Lists.ListSet.html#set_union"><span class="id" title="definition">set_union</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Strings.String.html#string_dec"><span class="id" title="definition">string_dec</span></a> <a class="idref" href="lec_12_infer.html#acc:57"><span class="id" title="variable">acc</span></a> <a class="idref" href="lec_12_infer.html#x:58"><span class="id" title="variable">x</span></a>) (<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Lists.List.html#map"><span class="id" title="definition">List.map</span></a> <a class="idref" href="lec_12_infer.html#TypeInfer.free_var_constraint"><span class="id" title="definition">free_var_constraint</span></a> <a class="idref" href="lec_12_infer.html#cs:56"><span class="id" title="variable">cs</span></a>) (<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Lists.ListSet.html#empty_set"><span class="id" title="definition">empty_set</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Strings.String.html#string"><span class="id" title="inductive">string</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab81"></a><h3 class="section">Typing Relation with Constraints</h3>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ(x)&nbsp;=&nbsp;T<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--------------------&nbsp;T_Var<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;x:&nbsp;T&nbsp;~&gt;&nbsp;{}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ,&nbsp;x:&nbsp;T2&nbsp;⊢&nbsp;t:&nbsp;T1&nbsp;~&gt;&nbsp;C<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-------------------------------&nbsp;T_Abs<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;\x:&nbsp;T2,&nbsp;t:&nbsp;T2&nbsp;-&gt;&nbsp;T1&nbsp;~&gt;&nbsp;C<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;t1:&nbsp;T2&nbsp;~&gt;&nbsp;C1&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;t2:&nbsp;T1&nbsp;~&gt;&nbsp;C2&nbsp;&nbsp;&nbsp;X&nbsp;∉&nbsp;fv(C1&nbsp;∪&nbsp;C2)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-----------------------------------------------------------&nbsp;T_App<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;t1&nbsp;t2:&nbsp;T1&nbsp;~&gt;&nbsp;C1&nbsp;∪&nbsp;C2&nbsp;∪&nbsp;{T2&nbsp;=&nbsp;T1&nbsp;-&gt;&nbsp;X}<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;---------------------------&nbsp;T_True<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;true:&nbsp;Bool&nbsp;~&gt;&nbsp;{}<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;---------------------------&nbsp;T_False<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;false:&nbsp;Bool&nbsp;~&gt;&nbsp;{}<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;t1&nbsp;:&nbsp;Bool&nbsp;~&gt;&nbsp;C1&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;t2&nbsp;:&nbsp;T&nbsp;~&gt;&nbsp;C2&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;t3&nbsp;:&nbsp;T&nbsp;~&gt;&nbsp;C3<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;----------------------------------------------------------------&nbsp;T_False<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Γ&nbsp;⊢&nbsp;if&nbsp;t1&nbsp;t2&nbsp;t3:&nbsp;T&nbsp;~&gt;&nbsp;C1&nbsp;∪&nbsp;C2&nbsp;∪&nbsp;C3<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;*)</span><br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="TypeInfer.context" class="idref" href="#TypeInfer.context"><span class="id" title="definition">context</span></a> := <span class="id" title="definition">partial_map</span> <a class="idref" href="lec_12_infer.html#TypeInfer.ty"><span class="id" title="inductive">ty</span></a>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Inductive</span> <a id="TypeInfer.has_typeC" class="idref" href="#TypeInfer.has_typeC"><span class="id" title="inductive">has_typeC</span></a> : <a class="idref" href="lec_12_infer.html#TypeInfer.context"><span class="id" title="definition">context</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_12_infer.html#TypeInfer.tm"><span class="id" title="inductive">tm</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_12_infer.html#TypeInfer.ty"><span class="id" title="inductive">ty</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="lec_12_infer.html#TypeInfer.constraint"><span class="id" title="inductive">constraint</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;| <a id="TypeInfer.T_Var" class="idref" href="#TypeInfer.T_Var"><span class="id" title="constructor">T_Var</span></a> : <span class="id" title="keyword">forall</span> <a id="Gamma:61" class="idref" href="#Gamma:61"><span class="id" title="binder">Gamma</span></a> <a id="a:62" class="idref" href="#a:62"><span class="id" title="binder">a</span></a> <a id="T1:63" class="idref" href="#T1:63"><span class="id" title="binder">T1</span></a>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#Gamma:61"><span class="id" title="variable">Gamma</span></a> <a class="idref" href="lec_12_infer.html#a:62"><span class="id" title="variable">a</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <a class="idref" href="lec_12_infer.html#T1:63"><span class="id" title="variable">T1</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#has_typeC:59"><span class="id" title="inductive">has_typeC</span></a> <a class="idref" href="lec_12_infer.html#Gamma:61"><span class="id" title="variable">Gamma</span></a> (<a class="idref" href="lec_12_infer.html#TypeInfer.tm_var"><span class="id" title="constructor">tm_var</span></a> <a class="idref" href="lec_12_infer.html#a:62"><span class="id" title="variable">a</span></a>) <a class="idref" href="lec_12_infer.html#T1:63"><span class="id" title="variable">T1</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nil"><span class="id" title="constructor">nil</span></a><br/>
+&nbsp;&nbsp;| <a id="TypeInfer.T_Abs" class="idref" href="#TypeInfer.T_Abs"><span class="id" title="constructor">T_Abs</span></a> : <span class="id" title="keyword">forall</span> <a id="Gamma:64" class="idref" href="#Gamma:64"><span class="id" title="binder">Gamma</span></a> <a id="x:65" class="idref" href="#x:65"><span class="id" title="binder">x</span></a> <a id="T1:66" class="idref" href="#T1:66"><span class="id" title="binder">T1</span></a> <a id="T2:67" class="idref" href="#T2:67"><span class="id" title="binder">T2</span></a> <a id="t1:68" class="idref" href="#t1:68"><span class="id" title="binder">t1</span></a> <a id="C:69" class="idref" href="#C:69"><span class="id" title="binder">C</span></a>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#has_typeC:59"><span class="id" title="inductive">has_typeC</span></a> (<a class="idref" href="lec_12_infer.html#x:65"><span class="id" title="variable">x</span></a> <span class="id" title="notation">|-&gt;</span> <a class="idref" href="lec_12_infer.html#T2:67"><span class="id" title="variable">T2</span></a> <span class="id" title="notation">;</span> <a class="idref" href="lec_12_infer.html#Gamma:64"><span class="id" title="variable">Gamma</span></a>) <a class="idref" href="lec_12_infer.html#t1:68"><span class="id" title="variable">t1</span></a> <a class="idref" href="lec_12_infer.html#T1:66"><span class="id" title="variable">T1</span></a> <a class="idref" href="lec_12_infer.html#C:69"><span class="id" title="variable">C</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#has_typeC:59"><span class="id" title="inductive">has_typeC</span></a> <a class="idref" href="lec_12_infer.html#Gamma:64"><span class="id" title="variable">Gamma</span></a> (<a class="idref" href="lec_12_infer.html#TypeInfer.tm_abs"><span class="id" title="constructor">tm_abs</span></a> <a class="idref" href="lec_12_infer.html#x:65"><span class="id" title="variable">x</span></a> <a class="idref" href="lec_12_infer.html#T2:67"><span class="id" title="variable">T2</span></a> <a class="idref" href="lec_12_infer.html#t1:68"><span class="id" title="variable">t1</span></a>) (<a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Arrow"><span class="id" title="constructor">Ty_Arrow</span></a> <a class="idref" href="lec_12_infer.html#T2:67"><span class="id" title="variable">T2</span></a> <a class="idref" href="lec_12_infer.html#T1:66"><span class="id" title="variable">T1</span></a>) <a class="idref" href="lec_12_infer.html#C:69"><span class="id" title="variable">C</span></a><br/>
+&nbsp;&nbsp;| <a id="TypeInfer.T_App" class="idref" href="#TypeInfer.T_App"><span class="id" title="constructor">T_App</span></a> : <span class="id" title="keyword">forall</span> <a id="T1:70" class="idref" href="#T1:70"><span class="id" title="binder">T1</span></a> <a id="T2:71" class="idref" href="#T2:71"><span class="id" title="binder">T2</span></a> <a id="Gamma:72" class="idref" href="#Gamma:72"><span class="id" title="binder">Gamma</span></a> <a id="t1:73" class="idref" href="#t1:73"><span class="id" title="binder">t1</span></a> <a id="t2:74" class="idref" href="#t2:74"><span class="id" title="binder">t2</span></a> <a id="C1:75" class="idref" href="#C1:75"><span class="id" title="binder">C1</span></a> <a id="C2:76" class="idref" href="#C2:76"><span class="id" title="binder">C2</span></a> <a id="X:77" class="idref" href="#X:77"><span class="id" title="binder">X</span></a>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#has_typeC:59"><span class="id" title="inductive">has_typeC</span></a> <a class="idref" href="lec_12_infer.html#Gamma:72"><span class="id" title="variable">Gamma</span></a> <a class="idref" href="lec_12_infer.html#t1:73"><span class="id" title="variable">t1</span></a> (<a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Arrow"><span class="id" title="constructor">Ty_Arrow</span></a> <a class="idref" href="lec_12_infer.html#T2:71"><span class="id" title="variable">T2</span></a> <a class="idref" href="lec_12_infer.html#T1:70"><span class="id" title="variable">T1</span></a>) <a class="idref" href="lec_12_infer.html#C1:75"><span class="id" title="variable">C1</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#has_typeC:59"><span class="id" title="inductive">has_typeC</span></a> <a class="idref" href="lec_12_infer.html#Gamma:72"><span class="id" title="variable">Gamma</span></a> <a class="idref" href="lec_12_infer.html#t2:74"><span class="id" title="variable">t2</span></a> <a class="idref" href="lec_12_infer.html#T2:71"><span class="id" title="variable">T2</span></a> <a class="idref" href="lec_12_infer.html#C2:76"><span class="id" title="variable">C2</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Lists.ListSet.html#set_mem"><span class="id" title="definition">set_mem</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Strings.String.html#string_dec"><span class="id" title="definition">string_dec</span></a> <a class="idref" href="lec_12_infer.html#X:77"><span class="id" title="variable">X</span></a> (<a class="idref" href="lec_12_infer.html#TypeInfer.free_var_constraints"><span class="id" title="definition">free_var_constraints</span></a> (<a class="idref" href="lec_12_infer.html#C1:75"><span class="id" title="variable">C1</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bc347c51eaf667706ae54503b26d52c6"><span class="id" title="notation">++</span></a> <a class="idref" href="lec_12_infer.html#C2:76"><span class="id" title="variable">C2</span></a>)) <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <span class="id" title="notation">false</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#has_typeC:59"><span class="id" title="inductive">has_typeC</span></a> <a class="idref" href="lec_12_infer.html#Gamma:72"><span class="id" title="variable">Gamma</span></a> (<a class="idref" href="lec_12_infer.html#TypeInfer.tm_app"><span class="id" title="constructor">tm_app</span></a> <a class="idref" href="lec_12_infer.html#t1:73"><span class="id" title="variable">t1</span></a> <a class="idref" href="lec_12_infer.html#t2:74"><span class="id" title="variable">t2</span></a>) <a class="idref" href="lec_12_infer.html#T1:70"><span class="id" title="variable">T1</span></a> (<a class="idref" href="lec_12_infer.html#C1:75"><span class="id" title="variable">C1</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bc347c51eaf667706ae54503b26d52c6"><span class="id" title="notation">++</span></a> <a class="idref" href="lec_12_infer.html#C2:76"><span class="id" title="variable">C2</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bc347c51eaf667706ae54503b26d52c6"><span class="id" title="notation">++</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bc347c51eaf667706ae54503b26d52c6"><span class="id" title="notation">(</span></a><a class="idref" href="lec_12_infer.html#TypeInfer.Ty_eq"><span class="id" title="constructor">Ty_eq</span></a> <a class="idref" href="lec_12_infer.html#T2:71"><span class="id" title="variable">T2</span></a> (<a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Arrow"><span class="id" title="constructor">Ty_Arrow</span></a> <a class="idref" href="lec_12_infer.html#T1:70"><span class="id" title="variable">T1</span></a> (<a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Var"><span class="id" title="constructor">Ty_Var</span></a> <a class="idref" href="lec_12_infer.html#X:77"><span class="id" title="variable">X</span></a>)) <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#::list_scope:x_'::'_x"><span class="id" title="notation">::</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nil"><span class="id" title="constructor">nil</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bc347c51eaf667706ae54503b26d52c6"><span class="id" title="notation">)</span></a>)<br/>
+&nbsp;&nbsp;| <a id="TypeInfer.T_True" class="idref" href="#TypeInfer.T_True"><span class="id" title="constructor">T_True</span></a> : <span class="id" title="keyword">forall</span> <a id="Gamma:78" class="idref" href="#Gamma:78"><span class="id" title="binder">Gamma</span></a>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#has_typeC:59"><span class="id" title="inductive">has_typeC</span></a> <a class="idref" href="lec_12_infer.html#Gamma:78"><span class="id" title="variable">Gamma</span></a> <a class="idref" href="lec_12_infer.html#TypeInfer.tm_true"><span class="id" title="constructor">tm_true</span></a> <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Bool"><span class="id" title="constructor">Ty_Bool</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nil"><span class="id" title="constructor">nil</span></a><br/>
+&nbsp;&nbsp;| <a id="TypeInfer.T_False" class="idref" href="#TypeInfer.T_False"><span class="id" title="constructor">T_False</span></a> : <span class="id" title="keyword">forall</span> <a id="Gamma:79" class="idref" href="#Gamma:79"><span class="id" title="binder">Gamma</span></a>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#has_typeC:59"><span class="id" title="inductive">has_typeC</span></a> <a class="idref" href="lec_12_infer.html#Gamma:79"><span class="id" title="variable">Gamma</span></a> <a class="idref" href="lec_12_infer.html#TypeInfer.tm_false"><span class="id" title="constructor">tm_false</span></a> <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Bool"><span class="id" title="constructor">Ty_Bool</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nil"><span class="id" title="constructor">nil</span></a><br/>
+&nbsp;&nbsp;| <a id="TypeInfer.T_If" class="idref" href="#TypeInfer.T_If"><span class="id" title="constructor">T_If</span></a> : <span class="id" title="keyword">forall</span> <a id="t1:80" class="idref" href="#t1:80"><span class="id" title="binder">t1</span></a> <a id="t2:81" class="idref" href="#t2:81"><span class="id" title="binder">t2</span></a> <a id="t3:82" class="idref" href="#t3:82"><span class="id" title="binder">t3</span></a> <a id="T1:83" class="idref" href="#T1:83"><span class="id" title="binder">T1</span></a> <a id="Gamma:84" class="idref" href="#Gamma:84"><span class="id" title="binder">Gamma</span></a> <a id="C1:85" class="idref" href="#C1:85"><span class="id" title="binder">C1</span></a> <a id="C2:86" class="idref" href="#C2:86"><span class="id" title="binder">C2</span></a> <a id="C3:87" class="idref" href="#C3:87"><span class="id" title="binder">C3</span></a>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#has_typeC:59"><span class="id" title="inductive">has_typeC</span></a> <a class="idref" href="lec_12_infer.html#Gamma:84"><span class="id" title="variable">Gamma</span></a> <a class="idref" href="lec_12_infer.html#t1:80"><span class="id" title="variable">t1</span></a> <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Bool"><span class="id" title="constructor">Ty_Bool</span></a> <a class="idref" href="lec_12_infer.html#C1:85"><span class="id" title="variable">C1</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#has_typeC:59"><span class="id" title="inductive">has_typeC</span></a> <a class="idref" href="lec_12_infer.html#Gamma:84"><span class="id" title="variable">Gamma</span></a> <a class="idref" href="lec_12_infer.html#t2:81"><span class="id" title="variable">t2</span></a> <a class="idref" href="lec_12_infer.html#T1:83"><span class="id" title="variable">T1</span></a> <a class="idref" href="lec_12_infer.html#C2:86"><span class="id" title="variable">C2</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#has_typeC:59"><span class="id" title="inductive">has_typeC</span></a> <a class="idref" href="lec_12_infer.html#Gamma:84"><span class="id" title="variable">Gamma</span></a> <a class="idref" href="lec_12_infer.html#t3:82"><span class="id" title="variable">t3</span></a> <a class="idref" href="lec_12_infer.html#T1:83"><span class="id" title="variable">T1</span></a> <a class="idref" href="lec_12_infer.html#C3:87"><span class="id" title="variable">C3</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#has_typeC:59"><span class="id" title="inductive">has_typeC</span></a> <a class="idref" href="lec_12_infer.html#Gamma:84"><span class="id" title="variable">Gamma</span></a> (<a class="idref" href="lec_12_infer.html#TypeInfer.tm_if"><span class="id" title="constructor">tm_if</span></a> <a class="idref" href="lec_12_infer.html#t1:80"><span class="id" title="variable">t1</span></a> <a class="idref" href="lec_12_infer.html#t2:81"><span class="id" title="variable">t2</span></a> <a class="idref" href="lec_12_infer.html#t3:82"><span class="id" title="variable">t3</span></a>) <a class="idref" href="lec_12_infer.html#T1:83"><span class="id" title="variable">T1</span></a> (<a class="idref" href="lec_12_infer.html#C1:85"><span class="id" title="variable">C1</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bc347c51eaf667706ae54503b26d52c6"><span class="id" title="notation">++</span></a> <a class="idref" href="lec_12_infer.html#C2:86"><span class="id" title="variable">C2</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bc347c51eaf667706ae54503b26d52c6"><span class="id" title="notation">++</span></a> <a class="idref" href="lec_12_infer.html#C3:87"><span class="id" title="variable">C3</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab82"></a><h3 class="section">Interpreting Type Variables</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Just like we might interpret variables in a term with an environment,
+        we can interpret type variables in a type variable with an environment.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+   
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="TypeInfer.type_context" class="idref" href="#TypeInfer.type_context"><span class="id" title="definition">type_context</span></a> := <span class="id" title="definition">partial_map</span> <a class="idref" href="lec_12_infer.html#TypeInfer.ty"><span class="id" title="inductive">ty</span></a>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Fixpoint</span> <a id="TypeInfer.type_substitution" class="idref" href="#TypeInfer.type_substitution"><span class="id" title="definition">type_substitution</span></a> (<a id="ty_ctx:88" class="idref" href="#ty_ctx:88"><span class="id" title="binder">ty_ctx</span></a>: <a class="idref" href="lec_12_infer.html#TypeInfer.type_context"><span class="id" title="definition">type_context</span></a>) (<a id="t:89" class="idref" href="#t:89"><span class="id" title="binder">t</span></a>: <a class="idref" href="lec_12_infer.html#TypeInfer.ty"><span class="id" title="inductive">ty</span></a>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="lec_12_infer.html#t:89"><span class="id" title="variable">t</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Bool"><span class="id" title="constructor">Ty_Bool</span></a> =&gt; <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Bool"><span class="id" title="constructor">Ty_Bool</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Arrow"><span class="id" title="constructor">Ty_Arrow</span></a> <span class="id" title="var">t1</span> <span class="id" title="var">t2</span> =&gt; <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Arrow"><span class="id" title="constructor">Ty_Arrow</span></a> (<a class="idref" href="lec_12_infer.html#type_substitution:90"><span class="id" title="definition">type_substitution</span></a> <a class="idref" href="lec_12_infer.html#ty_ctx:88"><span class="id" title="variable">ty_ctx</span></a> <span class="id" title="var">t1</span>) (<a class="idref" href="lec_12_infer.html#type_substitution:90"><span class="id" title="definition">type_substitution</span></a> <a class="idref" href="lec_12_infer.html#ty_ctx:88"><span class="id" title="variable">ty_ctx</span></a> <span class="id" title="var">t2</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Var"><span class="id" title="constructor">Ty_Var</span></a> <span class="id" title="var">x</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> (<a class="idref" href="lec_12_infer.html#ty_ctx:88"><span class="id" title="variable">ty_ctx</span></a> <span class="id" title="var">x</span>) <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <span class="id" title="var">ty</span> =&gt; <span class="id" title="var">ty</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#None"><span class="id" title="constructor">None</span></a> =&gt; <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Var"><span class="id" title="constructor">Ty_Var</span></a> <span class="id" title="var">x</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="TypeInfer.type_substitution_constraints" class="idref" href="#TypeInfer.type_substitution_constraints"><span class="id" title="definition">type_substitution_constraints</span></a> (<a id="ty_ctx:92" class="idref" href="#ty_ctx:92"><span class="id" title="binder">ty_ctx</span></a>: <a class="idref" href="lec_12_infer.html#TypeInfer.type_context"><span class="id" title="definition">type_context</span></a>) (<a id="constraints:93" class="idref" href="#constraints:93"><span class="id" title="binder">constraints</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="lec_12_infer.html#TypeInfer.constraint"><span class="id" title="inductive">constraint</span></a>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Lists.List.html#map"><span class="id" title="definition">List.map</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="keyword">fun</span> <a id="c:94" class="idref" href="#c:94"><span class="id" title="binder">c</span></a> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="lec_12_infer.html#c:94"><span class="id" title="variable">c</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_eq"><span class="id" title="constructor">Ty_eq</span></a> <span class="id" title="var">t1</span> <span class="id" title="var">t2</span> =&gt; <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_eq"><span class="id" title="constructor">Ty_eq</span></a> (<a class="idref" href="lec_12_infer.html#TypeInfer.type_substitution"><span class="id" title="definition">type_substitution</span></a> <a class="idref" href="lec_12_infer.html#ty_ctx:92"><span class="id" title="variable">ty_ctx</span></a> <span class="id" title="var">t1</span>) (<a class="idref" href="lec_12_infer.html#TypeInfer.type_substitution"><span class="id" title="definition">type_substitution</span></a> <a class="idref" href="lec_12_infer.html#ty_ctx:92"><span class="id" title="variable">ty_ctx</span></a> <span class="id" title="var">t2</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>) <a class="idref" href="lec_12_infer.html#constraints:93"><span class="id" title="variable">constraints</span></a>.<br/>
+
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab83"></a><h3 class="section">Unification</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Now we reach the famous Hindley-Milner unification algorithm.
+
+</li>
+<li> If a type substitution exists, then unification finds it, and the term
+       with that type under that type substitution has a typing derivation.
+
+</li>
+<li> If a type substitution does not exist, then unification will return None,
+       and the term does not have a typing derivation.
+
+</li>
+<li> It is a remarkably simple algorithm.
+
+</li>
+<li> Note that it is not easy to show that this algorithm terminates in Coq,
+       so we pass in some fuel.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+   
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" title="keyword">Fixpoint</span> <a id="TypeInfer.unify" class="idref" href="#TypeInfer.unify"><span class="id" title="definition">unify</span></a> (<a id="n:96" class="idref" href="#n:96"><span class="id" title="binder">n</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) (<a id="constraints:97" class="idref" href="#constraints:97"><span class="id" title="binder">constraints</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="lec_12_infer.html#TypeInfer.constraint"><span class="id" title="inductive">constraint</span></a>) (<a id="ty_ctx:98" class="idref" href="#ty_ctx:98"><span class="id" title="binder">ty_ctx</span></a>: <a class="idref" href="lec_12_infer.html#TypeInfer.type_context"><span class="id" title="definition">type_context</span></a>): <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#option"><span class="id" title="inductive">option</span></a> <a class="idref" href="lec_12_infer.html#TypeInfer.type_context"><span class="id" title="definition">type_context</span></a> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="lec_12_infer.html#n:96"><span class="id" title="variable">n</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#O"><span class="id" title="constructor">O</span></a> =&gt; <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#None"><span class="id" title="constructor">None</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> <span class="id" title="var">n'</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="lec_12_infer.html#constraints:97"><span class="id" title="variable">constraints</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nil"><span class="id" title="constructor">nil</span></a> =&gt; <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <a class="idref" href="lec_12_infer.html#ty_ctx:98"><span class="id" title="variable">ty_ctx</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">c</span><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#::list_scope:x_'::'_x"><span class="id" title="notation">::</span></a><span class="id" title="var">constraints'</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">c</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_eq"><span class="id" title="constructor">Ty_eq</span></a> <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Bool"><span class="id" title="constructor">Ty_Bool</span></a> <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Bool"><span class="id" title="constructor">Ty_Bool</span></a> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#unify:99"><span class="id" title="definition">unify</span></a> <span class="id" title="var">n'</span> <span class="id" title="var">constraints'</span> <a class="idref" href="lec_12_infer.html#ty_ctx:98"><span class="id" title="variable">ty_ctx</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_eq"><span class="id" title="constructor">Ty_eq</span></a> (<a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Var"><span class="id" title="constructor">Ty_Var</span></a> <span class="id" title="var">X</span>) <span class="id" title="var">t'</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Lists.ListSet.html#set_mem"><span class="id" title="definition">set_mem</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Strings.String.html#string_dec"><span class="id" title="definition">string_dec</span></a> <span class="id" title="var">X</span> (<a class="idref" href="lec_12_infer.html#TypeInfer.free_var"><span class="id" title="definition">free_var</span></a> <span class="id" title="var">t'</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#None"><span class="id" title="constructor">None</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <a id="ty_ctx':103" class="idref" href="#ty_ctx':103"><span class="id" title="binder">ty_ctx'</span></a> := <span class="id" title="var">X</span> <span class="id" title="notation">|-&gt;</span> <span class="id" title="var">t'</span> <span class="id" title="notation">;</span> <a class="idref" href="lec_12_infer.html#ty_ctx:98"><span class="id" title="variable">ty_ctx</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#unify:99"><span class="id" title="definition">unify</span></a> <span class="id" title="var">n'</span> (<a class="idref" href="lec_12_infer.html#TypeInfer.type_substitution_constraints"><span class="id" title="definition">type_substitution_constraints</span></a> <a class="idref" href="lec_12_infer.html#ty_ctx':103"><span class="id" title="variable">ty_ctx'</span></a> <span class="id" title="var">constraints'</span>) <a class="idref" href="lec_12_infer.html#ty_ctx':103"><span class="id" title="variable">ty_ctx'</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_eq"><span class="id" title="constructor">Ty_eq</span></a> <span class="id" title="var">t</span> (<a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Var"><span class="id" title="constructor">Ty_Var</span></a> <span class="id" title="var">X</span>) =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Lists.ListSet.html#set_mem"><span class="id" title="definition">set_mem</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Strings.String.html#string_dec"><span class="id" title="definition">string_dec</span></a> <span class="id" title="var">X</span> (<a class="idref" href="lec_12_infer.html#TypeInfer.free_var"><span class="id" title="definition">free_var</span></a> <span class="id" title="var">t</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#None"><span class="id" title="constructor">None</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <a id="ty_ctx':104" class="idref" href="#ty_ctx':104"><span class="id" title="binder">ty_ctx'</span></a> := <span class="id" title="var">X</span> <span class="id" title="notation">|-&gt;</span> <span class="id" title="var">t</span> <span class="id" title="notation">;</span> <a class="idref" href="lec_12_infer.html#ty_ctx:98"><span class="id" title="variable">ty_ctx</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#unify:99"><span class="id" title="definition">unify</span></a> <span class="id" title="var">n'</span> (<a class="idref" href="lec_12_infer.html#TypeInfer.type_substitution_constraints"><span class="id" title="definition">type_substitution_constraints</span></a> <a class="idref" href="lec_12_infer.html#ty_ctx':104"><span class="id" title="variable">ty_ctx'</span></a> <span class="id" title="var">constraints'</span>) <a class="idref" href="lec_12_infer.html#ty_ctx':104"><span class="id" title="variable">ty_ctx'</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_eq"><span class="id" title="constructor">Ty_eq</span></a> (<a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Arrow"><span class="id" title="constructor">Ty_Arrow</span></a> <span class="id" title="var">t1</span> <span class="id" title="var">t2</span>) (<a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Arrow"><span class="id" title="constructor">Ty_Arrow</span></a> <span class="id" title="var">t1'</span> <span class="id" title="var">t2'</span>) =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> This case increases the constraints lists.
+
+</li>
+<li> Hence we need to do the "fuel" trick.
+
+</li>
+</ul>
+                 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#unify:99"><span class="id" title="definition">unify</span></a> <span class="id" title="var">n'</span> (<span class="id" title="var">constraints'</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bc347c51eaf667706ae54503b26d52c6"><span class="id" title="notation">++</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bc347c51eaf667706ae54503b26d52c6"><span class="id" title="notation">(</span></a><a class="idref" href="lec_12_infer.html#TypeInfer.Ty_eq"><span class="id" title="constructor">Ty_eq</span></a> <span class="id" title="var">t1</span> <span class="id" title="var">t1'</span><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#::list_scope:x_'::'_x"><span class="id" title="notation">::</span></a><a class="idref" href="lec_12_infer.html#TypeInfer.Ty_eq"><span class="id" title="constructor">Ty_eq</span></a> <span class="id" title="var">t2</span> <span class="id" title="var">t2'</span><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#::list_scope:x_'::'_x"><span class="id" title="notation">::</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nil"><span class="id" title="constructor">nil</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#bc347c51eaf667706ae54503b26d52c6"><span class="id" title="notation">)</span></a>) <a class="idref" href="lec_12_infer.html#ty_ctx:98"><span class="id" title="variable">ty_ctx</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_eq"><span class="id" title="constructor">Ty_eq</span></a> <span class="id" title="var">_</span> <span class="id" title="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#None"><span class="id" title="constructor">None</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab84"></a><h3 class="section">Example 1: no constraints</h3>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="TypeInfer.u1" class="idref" href="#TypeInfer.u1"><span class="id" title="definition">u1</span></a> := <a class="idref" href="lec_12_infer.html#TypeInfer.unify"><span class="id" title="definition">unify</span></a> 100 <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nil"><span class="id" title="constructor">nil</span></a> <span class="id" title="definition">empty</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Eval</span> <span class="id" title="tactic">compute</span> <span class="id" title="tactic">in</span> <a class="idref" href="lec_12_infer.html#TypeInfer.u1"><span class="id" title="definition">u1</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab85"></a><h3 class="section">Example 2: single constraint</h3>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="TypeInfer.u2" class="idref" href="#TypeInfer.u2"><span class="id" title="definition">u2</span></a> := <a class="idref" href="lec_12_infer.html#TypeInfer.unify"><span class="id" title="definition">unify</span></a> 100 (<a class="idref" href="lec_12_infer.html#TypeInfer.Ty_eq"><span class="id" title="constructor">Ty_eq</span></a> (<a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Var"><span class="id" title="constructor">Ty_Var</span></a> "X") <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Bool"><span class="id" title="constructor">Ty_Bool</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#::list_scope:x_'::'_x"><span class="id" title="notation">::</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nil"><span class="id" title="constructor">nil</span></a>) <span class="id" title="definition">empty</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Eval</span> <span class="id" title="tactic">compute</span> <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="keyword">match</span> <a class="idref" href="lec_12_infer.html#TypeInfer.u2"><span class="id" title="definition">u2</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <span class="id" title="var">ctx</span> =&gt; <span class="id" title="var">ctx</span> "X"%<span class="id" title="var">string</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#None"><span class="id" title="constructor">None</span></a> =&gt; <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#None"><span class="id" title="constructor">None</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Eval</span> <span class="id" title="tactic">compute</span> <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="keyword">match</span> <a class="idref" href="lec_12_infer.html#TypeInfer.u2"><span class="id" title="definition">u2</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <span class="id" title="var">ctx</span> =&gt; <span class="id" title="var">ctx</span> "Y"%<span class="id" title="var">string</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#None"><span class="id" title="constructor">None</span></a> =&gt; <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#None"><span class="id" title="constructor">None</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab86"></a><h3 class="section">Example 3: consistent constraints</h3>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="TypeInfer.constraints3" class="idref" href="#TypeInfer.constraints3"><span class="id" title="definition">constraints3</span></a> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#TypeInfer.Ty_eq"><span class="id" title="constructor">Ty_eq</span></a> (<a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Var"><span class="id" title="constructor">Ty_Var</span></a> "X") <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Bool"><span class="id" title="constructor">Ty_Bool</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#::list_scope:x_'::'_x"><span class="id" title="notation">::</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#TypeInfer.Ty_eq"><span class="id" title="constructor">Ty_eq</span></a> (<a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Arrow"><span class="id" title="constructor">Ty_Arrow</span></a> <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Bool"><span class="id" title="constructor">Ty_Bool</span></a> <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Bool"><span class="id" title="constructor">Ty_Bool</span></a>) (<a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Arrow"><span class="id" title="constructor">Ty_Arrow</span></a> <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Bool"><span class="id" title="constructor">Ty_Bool</span></a> (<a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Var"><span class="id" title="constructor">Ty_Var</span></a> "X"))<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#::list_scope:x_'::'_x"><span class="id" title="notation">::</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nil"><span class="id" title="constructor">nil</span></a>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="TypeInfer.u3" class="idref" href="#TypeInfer.u3"><span class="id" title="definition">u3</span></a> := <a class="idref" href="lec_12_infer.html#TypeInfer.unify"><span class="id" title="definition">unify</span></a> 100 <a class="idref" href="lec_12_infer.html#TypeInfer.constraints3"><span class="id" title="definition">constraints3</span></a> <span class="id" title="definition">empty</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Eval</span> <span class="id" title="tactic">compute</span> <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="keyword">match</span> <a class="idref" href="lec_12_infer.html#TypeInfer.u3"><span class="id" title="definition">u3</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <span class="id" title="var">ctx</span> =&gt; <span class="id" title="var">ctx</span> "X"%<span class="id" title="var">string</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#None"><span class="id" title="constructor">None</span></a> =&gt; <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#None"><span class="id" title="constructor">None</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Eval</span> <span class="id" title="tactic">compute</span> <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="keyword">match</span> <a class="idref" href="lec_12_infer.html#TypeInfer.u3"><span class="id" title="definition">u3</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <span class="id" title="var">ctx</span> =&gt; <span class="id" title="var">ctx</span> "Y"%<span class="id" title="var">string</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#None"><span class="id" title="constructor">None</span></a> =&gt; <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#None"><span class="id" title="constructor">None</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab87"></a><h3 class="section">Example 4: inconsistent constraints</h3>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="TypeInfer.constraints4" class="idref" href="#TypeInfer.constraints4"><span class="id" title="definition">constraints4</span></a> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#TypeInfer.Ty_eq"><span class="id" title="constructor">Ty_eq</span></a> (<a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Var"><span class="id" title="constructor">Ty_Var</span></a> "X") <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Bool"><span class="id" title="constructor">Ty_Bool</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#::list_scope:x_'::'_x"><span class="id" title="notation">::</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_12_infer.html#TypeInfer.Ty_eq"><span class="id" title="constructor">Ty_eq</span></a> (<a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Arrow"><span class="id" title="constructor">Ty_Arrow</span></a> <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Bool"><span class="id" title="constructor">Ty_Bool</span></a> <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Bool"><span class="id" title="constructor">Ty_Bool</span></a>) (<a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Arrow"><span class="id" title="constructor">Ty_Arrow</span></a> <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Bool"><span class="id" title="constructor">Ty_Bool</span></a> (<a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Arrow"><span class="id" title="constructor">Ty_Arrow</span></a> <a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Bool"><span class="id" title="constructor">Ty_Bool</span></a> (<a class="idref" href="lec_12_infer.html#TypeInfer.Ty_Var"><span class="id" title="constructor">Ty_Var</span></a> "X")))<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#::list_scope:x_'::'_x"><span class="id" title="notation">::</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nil"><span class="id" title="constructor">nil</span></a>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="TypeInfer.u4" class="idref" href="#TypeInfer.u4"><span class="id" title="definition">u4</span></a> := <a class="idref" href="lec_12_infer.html#TypeInfer.unify"><span class="id" title="definition">unify</span></a> 100 <a class="idref" href="lec_12_infer.html#TypeInfer.constraints4"><span class="id" title="definition">constraints4</span></a> <span class="id" title="definition">empty</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Eval</span> <span class="id" title="tactic">compute</span> <span class="id" title="tactic">in</span> <a class="idref" href="lec_12_infer.html#TypeInfer.u4"><span class="id" title="definition">u4</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Hindley-Milner type inference has the property that
+       it returns the minimal substitution that makes the term
+       typeable.
+
+</li>
+<li> And, if the term is not typeable, then it returns None.
+
+</li>
+</ul>
+   
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="lec_12_infer.html#TypeInfer"><span class="id" title="module">TypeInfer</span></a>.<br/>
+
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab88"></a><h2 class="section">Summary</h2>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> More simple types
+     * FIx
+     * Let / Unit
+     * Products / Sums
+     * Records
+
+</li>
+<li> Reference Types (problem of cycles)
+
+</li>
+<li> Complex extensions
+     * Parametric Polymorphism
+     * Subtyping
+
+</li>
+<li> Type-Checking
+
+</li>
+<li> Type-Inference
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+</div>
+</div>
+
+<div id="footer">
+<hr/><a href="index.html">Index</a><hr/>This page has been generated by <a href="http://coq.inria.fr/">coqdoc</a>
+</div>
+
+</div>
+
+</body>
+</html>

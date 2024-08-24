@@ -1,0 +1,1374 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<title>lec_04_rel</title>
+</head>
+
+<body>
+
+<div id="page">
+
+<div id="header">
+</div>
+
+<div id="main">
+
+<h1 class="libtitle">Library lec_04_rel</h1>
+
+<div class="code">
+</div>
+
+<div class="doc">
+<a id="lab1"></a><h1 class="section">Inductive Propositions, Relations, and Curry-Howard</h1>
+
+<div class="paragraph"> </div>
+
+<a id="lab2"></a><h2 class="section">References</h2>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> https://softwarefoundations.cis.upenn.edu/lf-current/IndProp.html
+
+</li>
+<li> https://softwarefoundations.cis.upenn.edu/lf-current/ProofObjects.html
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+ 
+<div class="paragraph"> </div>
+
+<a id="lab3"></a><h2 class="section">Recap</h2>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Last time we introduced the language of propositions in Coq.
+    Propositions enable us to express logical claims.
+    These claims could either by <span class="inlinecode"><span class="id" title="var">True</span></span> or <span class="inlinecode"><span class="id" title="var">False</span></span>
+
+</li>
+<li> We then saw how we could use the proof system in Coq to prove if a
+    proposition was <span class="inlinecode"><span class="id" title="var">True</span></span> or <span class="inlinecode"><span class="id" title="var">False</span></span>.
+
+</li>
+<li> Finally, we saw that what distinguished a proposition from booleans
+    was the notion of *decidability*. A general proposition does not 
+    satisfy law of excluded middle whereas a decidable proposition does.
+    This naturally led us to consider the constructive nature of Coq.
+
+</li>
+<li> Today will be the final part of our crash course into Coq before turning
+    our attention to survey various computational models (machine + language).
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+<a id="lab4"></a><h2 class="section">Goal for today</h2>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Introduction to inductively defined propositions
+
+</li>
+<li> Induction and proof trees
+
+</li>
+<li> Arithmetic expression language + operational semantics.
+
+</li>
+<li> <i>Operational semantics</i> for arithmetic expression language.
+
+</li>
+<li> Introduce the <i>Curry-Howard isomorphism</i>.
+
+</li>
+<li> Equality as an inductive type.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="comment">(*&nbsp;=================================================================&nbsp;*)</span><br/>
+</div>
+
+<div class="doc">
+<a id="lab5"></a><h2 class="section">Even as an Inductively Defined Propositions</h2>
+
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> We already saw that we could define inductive data-types
+<pre>
+Inductive nat : Set :=
+| O: nat
+| S: nat -&gt; nat
+</pre>
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> We also saw two ways to define evenness on natural numbers.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+<pre>
+Fixpoint is_evenb (n: nat): bool :=
+  match n with
+  | O =&gt; true
+  | S O =&gt; false
+  | S (S n') =&gt; is_evenb n'
+  end.
+</pre>
+
+<div class="paragraph"> </div>
+
+<pre>
+Fixpoint is_even (n: nat): Prop :=
+  match n with
+  | O =&gt; True
+  | S O =&gt; False
+  | S (S n') =&gt; is_even n'
+  end.
+</pre>
+
+<div class="paragraph"> </div>
+
+<pre>
+Definition is_even_ex (n: nat): Prop :=
+  exists m: nat, double m = n.
+</pre>
+ 
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Now we'll see how we can use inductive definitions to define evenness.
+
+</li>
+<li> This will be our first example of an <i>inductively defined proposition</i>.
+
+</li>
+<li> SEAR THIS EXAMPLE INTO YOUR MEMORY. We will use this over and over
+     (and over) again.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Inductive</span> <a id="ev'" class="idref" href="#ev'"><span class="id" title="inductive">ev'</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">Prop</span> :=<br/>
+| <a id="ev'_0" class="idref" href="#ev'_0"><span class="id" title="constructor">ev'_0</span></a> : <a class="idref" href="lec_04_rel.html#ev':1"><span class="id" title="inductive">ev'</span></a> 0<br/>
+| <a id="ev'_SS" class="idref" href="#ev'_SS"><span class="id" title="constructor">ev'_SS</span></a> : <span class="id" title="keyword">forall</span> (<a id="n:3" class="idref" href="#n:3"><span class="id" title="binder">n</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) (<a id="H:4" class="idref" href="#H:4"><span class="id" title="binder">H</span></a>: <a class="idref" href="lec_04_rel.html#ev':1"><span class="id" title="inductive">ev'</span></a> <a class="idref" href="lec_04_rel.html#n:3"><span class="id" title="variable">n</span></a>), <a class="idref" href="lec_04_rel.html#ev':1"><span class="id" title="inductive">ev'</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> <a class="idref" href="lec_04_rel.html#n:3"><span class="id" title="variable">n</span></a>)).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> <span class="inlinecode"><span class="id" title="var">ev'</span></span> is an inductive type that takes a nat and returns a prop.
+
+</li>
+<li> <span class="inlinecode"><span class="id" title="var">ev'_0</span></span> is a constructor that returns the proposition <span class="inlinecode"><span class="id" title="var">ev'</span></span> <span class="inlinecode">0</span>.
+     We can read this as "I assert that 0 is even".
+
+</li>
+<li> <span class="inlinecode"><span class="id" title="var">ev'_SS</span></span> is a constructor that returns the proposition
+     <span class="inlinecode"><span class="id" title="keyword">forall</span></span> <span class="inlinecode">(<span class="id" title="var">n</span></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="var">nat</span>)</span> <span class="inlinecode">(<span class="id" title="var">H</span></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="var">ev'</span></span> <span class="inlinecode"><span class="id" title="var">n</span>),</span> <span class="inlinecode"><span class="id" title="var">ev'</span></span> <span class="inlinecode">(<span class="id" title="var">S</span></span> <span class="inlinecode">(<span class="id" title="var">S</span></span> <span class="inlinecode"><span class="id" title="var">n</span>))</span>.
+     We can read this as "Give me a natural number n and a proof that
+     <span class="inlinecode"><span class="id" title="var">ev'</span></span> <span class="inlinecode"><span class="id" title="var">n</span></span> holds and I'll assert that ev' (S (S n)) holds."
+
+</li>
+<li> Here's another way to write it.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Inductive</span> <a id="ev" class="idref" href="#ev"><span class="id" title="inductive">ev</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">Prop</span> :=<br/>
+| <a id="ev_0" class="idref" href="#ev_0"><span class="id" title="constructor">ev_0</span></a> : <a class="idref" href="lec_04_rel.html#ev:5"><span class="id" title="inductive">ev</span></a> 0<br/>
+<span class="comment">(*&nbsp;different&nbsp;syntax&nbsp;for&nbsp;same&nbsp;concept&nbsp;*)</span><br/>
+| <a id="ev_SS" class="idref" href="#ev_SS"><span class="id" title="constructor">ev_SS</span></a> (<a id="n:7" class="idref" href="#n:7"><span class="id" title="binder">n</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) (<a id="H:8" class="idref" href="#H:8"><span class="id" title="binder">H</span></a> : <a class="idref" href="lec_04_rel.html#ev:5"><span class="id" title="inductive">ev</span></a> <a class="idref" href="lec_04_rel.html#n:7"><span class="id" title="variable">n</span></a>) : <a class="idref" href="lec_04_rel.html#ev:5"><span class="id" title="inductive">ev</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> <a class="idref" href="lec_04_rel.html#n:7"><span class="id" title="variable">n</span></a>)).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Question: why can't we write the following similar to list? 
+
+</li>
+</ul>
+
+</div>
+<div class="code">
+<span class="id" title="var">Fail</span> <span class="id" title="keyword">Inductive</span> <a id="wrong_ev" class="idref" href="#wrong_ev"><span class="id" title="inductive">wrong_ev</span></a> (<a id="n:9" class="idref" href="#n:9"><span class="id" title="binder">n</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) : <span class="id" title="keyword">Prop</span> :=<br/>
+| <a id="wrong_ev_0" class="idref" href="#wrong_ev_0"><span class="id" title="constructor">wrong_ev_0</span></a> : <a class="idref" href="lec_04_rel.html#wrong_ev:10"><span class="id" title="inductive">wrong_ev</span></a> 0<br/>
+| <a id="wrong_ev_SS" class="idref" href="#wrong_ev_SS"><span class="id" title="constructor">wrong_ev_SS</span></a> (<span class="id" title="var">H</span>: <span class="id" title="var">wrong_ev</span> <span class="id" title="var">n</span>) : <span class="id" title="var">wrong_ev</span> (<span class="id" title="var">S</span> (<span class="id" title="var">S</span> <span class="id" title="var">n</span>)).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Writing <span class="inlinecode">(<span class="id" title="var">n</span>:</span> <span class="inlinecode"><span class="id" title="var">nat</span>)</span> makes it a *global parameter* which means
+    that the argument to <span class="inlinecode"><span class="id" title="var">wrong_ev</span></span> has to be the same in all cases.
+
+</li>
+<li> Writing <span class="inlinecode"><span class="id" title="var">nat</span></span> <span class="inlinecode">-&gt;</span> <span class="inlinecode"><span class="id" title="var">prop</span></span> makes it an *index* which means that the argument to
+    <span class="inlinecode"><span class="id" title="var">wrong_ev</span></span> can vary in each case. This notion of an index will be important
+    for talking about dependent types.
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Question: why did we not write <span class="inlinecode"><span class="id" title="var">ev_SS</span>:</span> <span class="inlinecode"><span class="id" title="var">nat</span></span> <span class="inlinecode">-&gt;</span> <span class="inlinecode"><span class="id" title="var">ev</span></span> <span class="inlinecode"><span class="id" title="var">n</span></span> <span class="inlinecode">-&gt;</span> <span class="inlinecode"><span class="id" title="var">ev</span></span> <span class="inlinecode">(<span class="id" title="var">S</span></span> <span class="inlinecode">(<span class="id" title="var">S</span></span> <span class="inlinecode"><span class="id" title="var">n</span>))</span>? 
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="var">Fail</span> <span class="id" title="keyword">Inductive</span> <a id="wrong_ev'" class="idref" href="#wrong_ev'"><span class="id" title="inductive">wrong_ev'</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">Prop</span> :=<br/>
+| <a id="wrong_ev'_0" class="idref" href="#wrong_ev'_0"><span class="id" title="constructor">wrong_ev'_0</span></a>: <a class="idref" href="lec_04_rel.html#wrong_ev':12"><span class="id" title="inductive">wrong_ev'</span></a> 0<br/>
+| <a id="wrong_ev'_SS" class="idref" href="#wrong_ev'_SS"><span class="id" title="constructor">wrong_ev'_SS</span></a> : <span class="id" title="var">nat</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="var">wrong_ev'</span> <span class="id" title="var">n</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_04_rel.html#wrong_ev':12"><span class="id" title="inductive">wrong_ev'</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> <span class="id" title="var">n</span>)).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Recall that "A -&gt; B" is shorthand for <span class="inlinecode"><span class="id" title="keyword">forall</span></span> <span class="inlinecode"><span class="id" title="var">_</span>:</span> <span class="inlinecode"><span class="id" title="var">A</span>,</span> <span class="inlinecode"><span class="id" title="var">B</span></span>.
+
+</li>
+<li> In this case, we need the number "n".
+
+</li>
+<li> This is an example of a <i>dependent type</i>, and we will discuss this
+    more when we talk about the Curry-Howard isomorphism.   
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Theorem</span> <a id="ev_4" class="idref" href="#ev_4"><span class="id" title="lemma">ev_4</span></a>:<br/>
+&nbsp;&nbsp;<a class="idref" href="lec_04_rel.html#ev"><span class="id" title="inductive">ev</span></a> 4.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="lec_04_rel.html#ev_SS"><span class="id" title="constructor">ev_SS</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="lec_04_rel.html#ev_SS"><span class="id" title="constructor">ev_SS</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="lec_04_rel.html#ev_0"><span class="id" title="constructor">ev_0</span></a>. <span class="comment">(*&nbsp;Question:&nbsp;forwards&nbsp;or&nbsp;backwards&nbsp;reasoning?&nbsp;*)</span><br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Theorem</span> <a id="ev_plus4" class="idref" href="#ev_plus4"><span class="id" title="lemma">ev_plus4</span></a> :<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">forall</span> (<a id="n:14" class="idref" href="#n:14"><span class="id" title="binder">n</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>), <a class="idref" href="lec_04_rel.html#ev"><span class="id" title="inductive">ev</span></a> <a class="idref" href="lec_04_rel.html#n:14"><span class="id" title="variable">n</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_04_rel.html#ev"><span class="id" title="inductive">ev</span></a> (4 <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Peano.html#0dacc1786c5ba797d47dd85006231633"><span class="id" title="notation">+</span></a> <a class="idref" href="lec_04_rel.html#n:14"><span class="id" title="variable">n</span></a>).<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span> <span class="id" title="var">n</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span> <span class="id" title="var">Hn</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="lec_04_rel.html#ev_SS"><span class="id" title="constructor">ev_SS</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="lec_04_rel.html#ev_SS"><span class="id" title="constructor">ev_SS</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <span class="id" title="var">Hn</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab6"></a><h2 class="section">Paper-Pencil Inference Rules</h2>
+
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> What's the mental model for the proofs above?
+
+</li>
+<li> Let's take a detour to paper-pencil *inference rules*, i.e., how we would do
+     this without a proof assistant.
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab7"></a><h3 class="section">Inductively defined sets</h3>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="comment">(*<br/>
+&nbsp;&nbsp;We&nbsp;can&nbsp;define&nbsp;_inductively&nbsp;defined&nbsp;sets_&nbsp;as&nbsp;follows:<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(Axiom)<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(empty&nbsp;premise)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;---------------&nbsp;&nbsp;&nbsp;&nbsp;(name&nbsp;of&nbsp;rule)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a&nbsp;\in&nbsp;S&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(conclusion)<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;axiom&nbsp;asserts&nbsp;that&nbsp;the&nbsp;element&nbsp;a&nbsp;is&nbsp;always&nbsp;in&nbsp;the&nbsp;set&nbsp;S.<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(Inference&nbsp;Rule)<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a_1&nbsp;\in&nbsp;S&nbsp;....&nbsp;a_n&nbsp;\in&nbsp;S&nbsp;&nbsp;&nbsp;(premise)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--------------------------&nbsp;&nbsp;(name&nbsp;of&nbsp;rule)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a&nbsp;\in&nbsp;S&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(conclusion)<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;inference&nbsp;rule&nbsp;asserts&nbsp;that&nbsp;if&nbsp;we&nbsp;can&nbsp;show&nbsp;that&nbsp;a_1&nbsp;\in&nbsp;S,&nbsp;a_n&nbsp;\in&nbsp;S,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;then&nbsp;we&nbsp;can&nbsp;show&nbsp;that&nbsp;a&nbsp;\in&nbsp;S.<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab8"></a><h3 class="section">Example 1: Natural Numbers</h3>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="comment">(*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Suppose&nbsp;we&nbsp;are&nbsp;trying&nbsp;to&nbsp;define&nbsp;the&nbsp;set&nbsp;of&nbsp;natural&nbsp;numbers&nbsp;nat.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(Axiom)<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;---------------&nbsp;O<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;O&nbsp;\in&nbsp;nat&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(Inference&nbsp;rule)<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;n&nbsp;\in&nbsp;nat&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;------------------&nbsp;S<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;S&nbsp;n&nbsp;\in&nbsp;nat&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+<span class="id" title="keyword">Print</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab9"></a><h3 class="section">Example 2: Lists</h3>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Suppose&nbsp;we&nbsp;are&nbsp;trying&nbsp;to&nbsp;define&nbsp;the&nbsp;set&nbsp;of&nbsp;lists&nbsp;of&nbsp;type&nbsp;X.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(Axiom)<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;---------------&nbsp;nil<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{}&nbsp;\in&nbsp;list(X)<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(Inference&nbsp;rule)<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x&nbsp;\in&nbsp;X&nbsp;&nbsp;&nbsp;ls&nbsp;\in&nbsp;list(X)&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;-------------------------&nbsp;cons<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{x,&nbsp;ls}&nbsp;\in&nbsp;list(X)<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+<span class="id" title="keyword">Print</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab10"></a><h3 class="section">Example 3: Even</h3>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="comment">(*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(Axiom)<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;---------------&nbsp;ev_O<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;O&nbsp;\in&nbsp;ev<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(Inference&nbsp;rule)<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;n&nbsp;\in&nbsp;ev&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;------------------&nbsp;ev_SS<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;S&nbsp;(S&nbsp;(n))&nbsp;\in&nbsp;ev&nbsp;&nbsp;<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+<span class="id" title="keyword">Print</span> <a class="idref" href="lec_04_rel.html#ev"><span class="id" title="inductive">ev</span></a>.<br/>
+<span class="comment">(*&nbsp;notice&nbsp;we&nbsp;have&nbsp;Prop&nbsp;now!&nbsp;*)</span><br/>
+
+<br/>
+<span class="id" title="keyword">Theorem</span> <a id="ev_4'" class="idref" href="#ev_4'"><span class="id" title="lemma">ev_4'</span></a>: <a class="idref" href="lec_04_rel.html#ev"><span class="id" title="inductive">ev</span></a> 4.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">apply</span> (<a class="idref" href="lec_04_rel.html#ev_SS"><span class="id" title="constructor">ev_SS</span></a> 2 (<a class="idref" href="lec_04_rel.html#ev_SS"><span class="id" title="constructor">ev_SS</span></a> 0 <a class="idref" href="lec_04_rel.html#ev_0"><span class="id" title="constructor">ev_0</span></a>)).<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab11"></a><h3 class="section">Proof trees</h3>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;------&nbsp;ev_0<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ev&nbsp;O<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-----------------&nbsp;ev_SS<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ev&nbsp;(S&nbsp;(S&nbsp;(O)))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;------------------------&nbsp;ev_SS<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ev&nbsp;(S&nbsp;(S&nbsp;(S&nbsp;(S&nbsp;O))))<br/>
+<br/>
+*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Question: why is this a tree?
+
+</li>
+<li> Answer: eventually we may have rules that require multiple premises
+     to be satisfied, in which case we will eventually get a tree out.
+
+</li>
+<li> We will see an example of this later on.
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab12"></a><h2 class="section">Working with Inductive Propositions</h2>
+
+<div class="paragraph"> </div>
+
+<a id="lab13"></a><h3 class="section">Inversion on evidence</h3>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Theorem</span> <a id="ev_inversion" class="idref" href="#ev_inversion"><span class="id" title="lemma">ev_inversion</span></a> :<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">forall</span> (<a id="n:15" class="idref" href="#n:15"><span class="id" title="binder">n</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_04_rel.html#ev"><span class="id" title="inductive">ev</span></a> <a class="idref" href="lec_04_rel.html#n:15"><span class="id" title="variable">n</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#f031fe1957c4a4a8e217aa46af2b4e25"><span class="id" title="notation">(</span></a><a class="idref" href="lec_04_rel.html#n:15"><span class="id" title="variable">n</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> 0<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#f031fe1957c4a4a8e217aa46af2b4e25"><span class="id" title="notation">)</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#f031fe1957c4a4a8e217aa46af2b4e25"><span class="id" title="notation">\/</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#f031fe1957c4a4a8e217aa46af2b4e25"><span class="id" title="notation">(</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">exists</span></a> <a id="n':16" class="idref" href="#n':16"><span class="id" title="binder">n'</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">,</span></a> <a class="idref" href="lec_04_rel.html#n:15"><span class="id" title="variable">n</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> <a class="idref" href="lec_04_rel.html#n':16"><span class="id" title="variable">n'</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#ba2b0e492d2b4675a0acf3ea92aabadd"><span class="id" title="notation">/\</span></a> <a class="idref" href="lec_04_rel.html#ev"><span class="id" title="inductive">ev</span></a> <a class="idref" href="lec_04_rel.html#n':16"><span class="id" title="variable">n'</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#f031fe1957c4a4a8e217aa46af2b4e25"><span class="id" title="notation">)</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span> <span class="id" title="var">n</span> <span class="id" title="var">E</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="comment">(*&nbsp;Just&nbsp;like&nbsp;destruct&nbsp;on&nbsp;natural&nbsp;numbers&nbsp;or&nbsp;lists.&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">E</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;- <span class="comment">(*&nbsp;E&nbsp;=&nbsp;ev_0&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">left</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;- <span class="comment">(*&nbsp;E&nbsp;=&nbsp;ev_SS&nbsp;n&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">right</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">exists</span> <span class="id" title="var">n</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">split</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <span class="id" title="var">E</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Theorems of this form are called <i>inversion</i> lemmas.
+
+</li>
+<li> Intuitively, it is saying that if we build a proof of <span class="inlinecode"><span class="id" title="var">ev</span></span> <span class="inlinecode"><span class="id" title="var">n</span></span>,
+     it must be constructed with informat either either from the
+     premises of <span class="inlinecode"><span class="id" title="var">ev_O</span></span> or <span class="inlinecode"><span class="id" title="var">ev_SS</span></span>.
+
+</li>
+<li> What properties of inductive types does this remind you of?
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Theorem</span> <a id="evSS_ev" class="idref" href="#evSS_ev"><span class="id" title="lemma">evSS_ev</span></a> :<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">forall</span> (<a id="n:17" class="idref" href="#n:17"><span class="id" title="binder">n</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_04_rel.html#ev"><span class="id" title="inductive">ev</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> <a class="idref" href="lec_04_rel.html#n:17"><span class="id" title="variable">n</span></a>)) <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_04_rel.html#ev"><span class="id" title="inductive">ev</span></a> <a class="idref" href="lec_04_rel.html#n:17"><span class="id" title="variable">n</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span> <span class="id" title="var">n</span> <span class="id" title="var">E</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">inversion</span> <span class="id" title="var">E</span>. <span class="comment">(*&nbsp;tactic&nbsp;<span class="inlinecode"><span class="id" title="tactic">inversion</span></span>&nbsp;applies&nbsp;the&nbsp;inversion&nbsp;lemma&nbsp;and<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;removes&nbsp;trivial&nbsp;cases.&nbsp;For&nbsp;example,&nbsp;we&nbsp;know&nbsp;we&nbsp;cannot<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;be&nbsp;in&nbsp;the&nbsp;<span class="inlinecode"><span class="id" title="var">ev_O</span></span>&nbsp;case.&nbsp;Why?&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <span class="id" title="var">H0</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab14"></a><h3 class="section">Induction on evidence</h3>
+
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Recall that all inductive types have an induction principle.
+
+</li>
+<li> The same is true of inductive propositions.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Print</span> <a class="idref" href="lec_04_rel.html#ev_ind"><span class="id" title="definition">ev_ind</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> We'll need some definitions from our previous lecture.
+
+</li>
+<li> You can run <span class="inlinecode"><span class="id" title="var">coqc</span></span> <span class="inlinecode"><span class="id" title="var">lec_03_proof.v</span></span> to compile the previous lecture.
+
+</li>
+<li> Now we can use it.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">lec_03_proof</span>.<br/>
+<span class="id" title="keyword">Print</span> <span class="id" title="var">lec_03_proof</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="ev_even_ex" class="idref" href="#ev_even_ex"><span class="id" title="lemma">ev_even_ex</span></a> :<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">forall</span> (<a id="n:18" class="idref" href="#n:18"><span class="id" title="binder">n</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_04_rel.html#ev"><span class="id" title="inductive">ev</span></a> <a class="idref" href="lec_04_rel.html#n:18"><span class="id" title="variable">n</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="definition">is_even_ex</span> <a class="idref" href="lec_04_rel.html#n:18"><span class="id" title="variable">n</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span> <span class="id" title="var">n</span> <span class="id" title="var">E</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="comment">(*&nbsp;We&nbsp;are&nbsp;performing&nbsp;induction&nbsp;on&nbsp;the&nbsp;evidence!&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="tactic">induction</span> <span class="id" title="var">E</span> <span class="id" title="keyword">as</span> [|<span class="id" title="var">n'</span> <span class="id" title="var">E'</span> <span class="id" title="var">IH</span>].<br/>
+
+<br/>
+&nbsp;&nbsp;- <span class="comment">(*&nbsp;E&nbsp;=&nbsp;ev_0&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">unfold</span> <span class="id" title="definition">is_even_ex</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">exists</span> 0.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;- <span class="comment">(*&nbsp;E&nbsp;=&nbsp;ev_SS&nbsp;n'&nbsp;E'&nbsp;with&nbsp;IH&nbsp;:&nbsp;Even&nbsp;E'&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">unfold</span> <span class="id" title="definition">is_even_ex</span> <span class="id" title="tactic">in</span> <span class="id" title="var">IH</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">IH</span> <span class="id" title="keyword">as</span> [<span class="id" title="var">k</span> <span class="id" title="var">Hk</span>].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">unfold</span> <span class="id" title="definition">is_even_ex</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">exists</span> (<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> <span class="id" title="var">k</span>). <span class="id" title="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="var">Hk</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">reflexivity</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab15"></a><h3 class="section">Picture of Proof</h3>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Let's go back to the proof tree view.
+
+</li>
+<li> What happens after we do induction on ev?
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="comment">(*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--------------&nbsp;ev_O&nbsp;or&nbsp;ev_SS<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ev&nbsp;n<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;----------------------------<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;exists&nbsp;k,&nbsp;double&nbsp;k&nbsp;=&nbsp;n<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Case&nbsp;ev_O:<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--------------&nbsp;ev_O<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ev&nbsp;O<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;---------------------------<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;exists&nbsp;k,&nbsp;double&nbsp;k&nbsp;=&nbsp;O<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Case&nbsp;ev_SS:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;------&nbsp;&nbsp;&nbsp;&nbsp;-----------------------<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ev&nbsp;n'&nbsp;&nbsp;&nbsp;&nbsp;exists&nbsp;m,&nbsp;double&nbsp;m&nbsp;=&nbsp;n'<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;-----------------------------------&nbsp;IH<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;exists&nbsp;k,&nbsp;double&nbsp;k&nbsp;=&nbsp;S&nbsp;(S&nbsp;n')<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab16"></a><h2 class="section">Inductive Relations</h2>
+
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> In the same way that we could define
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Inductive</span> <a id="le" class="idref" href="#le"><span class="id" title="inductive">le</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;| <a id="le_n" class="idref" href="#le_n"><span class="id" title="constructor">le_n</span></a> (<a id="n:21" class="idref" href="#n:21"><span class="id" title="binder">n</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) : <a class="idref" href="lec_04_rel.html#le:19"><span class="id" title="inductive">le</span></a> <a class="idref" href="lec_04_rel.html#n:21"><span class="id" title="variable">n</span></a> <a class="idref" href="lec_04_rel.html#n:21"><span class="id" title="variable">n</span></a><br/>
+&nbsp;&nbsp;| <a id="le_S" class="idref" href="#le_S"><span class="id" title="constructor">le_S</span></a> (<a id="n:22" class="idref" href="#n:22"><span class="id" title="binder">n</span></a> <a id="m:23" class="idref" href="#m:23"><span class="id" title="binder">m</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) (<a id="H:24" class="idref" href="#H:24"><span class="id" title="binder">H</span></a> : <a class="idref" href="lec_04_rel.html#le:19"><span class="id" title="inductive">le</span></a> <a class="idref" href="lec_04_rel.html#n:22"><span class="id" title="variable">n</span></a> <a class="idref" href="lec_04_rel.html#m:23"><span class="id" title="variable">m</span></a>) : <a class="idref" href="lec_04_rel.html#le:19"><span class="id" title="inductive">le</span></a> <a class="idref" href="lec_04_rel.html#n:22"><span class="id" title="variable">n</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> <a class="idref" href="lec_04_rel.html#m:23"><span class="id" title="variable">m</span></a>).<br/>
+
+<br/>
+<span class="id" title="keyword">Notation</span> <a id="b8382ebd4d1ecdc4b5385bb249fc75b4" class="idref" href="#b8382ebd4d1ecdc4b5385bb249fc75b4"><span class="id" title="notation">&quot;</span></a>n &lt;= m" := (<a class="idref" href="lec_04_rel.html#le"><span class="id" title="inductive">le</span></a> <span class="id" title="var">n</span> <span class="id" title="var">m</span>).<br/>
+
+<br/>
+<span class="id" title="keyword">Theorem</span> <a id="test_le1" class="idref" href="#test_le1"><span class="id" title="lemma">test_le1</span></a> :<br/>
+&nbsp;&nbsp;3 <a class="idref" href="lec_04_rel.html#b8382ebd4d1ecdc4b5385bb249fc75b4"><span class="id" title="notation">&lt;=</span></a> 3.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="lec_04_rel.html#le_n"><span class="id" title="constructor">le_n</span></a>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab17"></a><h3 class="section">Proof tree view</h3>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;-----------&nbsp;le_n<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3&nbsp;&lt;=&nbsp;3<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+<span class="id" title="keyword">Theorem</span> <a id="test_le2" class="idref" href="#test_le2"><span class="id" title="lemma">test_le2</span></a> :<br/>
+&nbsp;&nbsp;3 <a class="idref" href="lec_04_rel.html#b8382ebd4d1ecdc4b5385bb249fc75b4"><span class="id" title="notation">&lt;=</span></a> 6.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="lec_04_rel.html#le_S"><span class="id" title="constructor">le_S</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="lec_04_rel.html#le_S"><span class="id" title="constructor">le_S</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="lec_04_rel.html#le_S"><span class="id" title="constructor">le_S</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="lec_04_rel.html#le_n"><span class="id" title="constructor">le_n</span></a>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab18"></a><h3 class="section">Proof tree view</h3>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;-----------&nbsp;le_n<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3&nbsp;&lt;=&nbsp;3<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;-----------&nbsp;le_S<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3&nbsp;&lt;=&nbsp;4<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;-----------&nbsp;le_S<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3&nbsp;&lt;=&nbsp;5<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;-----------&nbsp;le_S<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3&nbsp;&lt;=&nbsp;6<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+<span class="id" title="keyword">Theorem</span> <a id="test_le3" class="idref" href="#test_le3"><span class="id" title="lemma">test_le3</span></a> :<br/>
+&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">(</span></a>2 <a class="idref" href="lec_04_rel.html#b8382ebd4d1ecdc4b5385bb249fc75b4"><span class="id" title="notation">&lt;=</span></a> 1<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">)</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> 2 <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Peano.html#0dacc1786c5ba797d47dd85006231633"><span class="id" title="notation">+</span></a> 2 <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> 5.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">inversion</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">inversion</span> <span class="id" title="var">H2</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+</div>
+
+<div class="doc">
+<a id="lab19"></a><h3 class="section">Proof tree view</h3>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-----------&nbsp;(contradiction,&nbsp;neither&nbsp;le_n&nbsp;nor&nbsp;le_S&nbsp;apply,&nbsp;so&nbsp;we&nbsp;can't&nbsp;build&nbsp;this)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2&nbsp;&lt;=&nbsp;0<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-----------&nbsp;le_S<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2&nbsp;&lt;=&nbsp;1<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;-----------------------&nbsp;intros<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2&nbsp;&lt;=&nbsp;1&nbsp;-&gt;&nbsp;2&nbsp;+&nbsp;2&nbsp;=&nbsp;5<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab20"></a><h2 class="section">Arithmetic Expression Language</h2>
+
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Let's define a grammar for a small arithmetic language.
+
+</li>
+<li> You may think of this as a simple calculator language.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Inductive</span> <a id="exp" class="idref" href="#exp"><span class="id" title="inductive">exp</span></a> : <span class="id" title="keyword">Set</span> :=<br/>
+| <a id="nat_exp" class="idref" href="#nat_exp"><span class="id" title="constructor">nat_exp</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_04_rel.html#exp:25"><span class="id" title="inductive">exp</span></a><br/>
+| <a id="plus_exp" class="idref" href="#plus_exp"><span class="id" title="constructor">plus_exp</span></a>: <a class="idref" href="lec_04_rel.html#exp:25"><span class="id" title="inductive">exp</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_04_rel.html#exp:25"><span class="id" title="inductive">exp</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_04_rel.html#exp:25"><span class="id" title="inductive">exp</span></a><br/>
+| <a id="times_exp" class="idref" href="#times_exp"><span class="id" title="constructor">times_exp</span></a>: <a class="idref" href="lec_04_rel.html#exp:25"><span class="id" title="inductive">exp</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_04_rel.html#exp:25"><span class="id" title="inductive">exp</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_04_rel.html#exp:25"><span class="id" title="inductive">exp</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Print</span> <a class="idref" href="lec_04_rel.html#exp_ind"><span class="id" title="definition">exp_ind</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab21"></a><h3 class="section">Inference rule view</h3>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;-----------&nbsp;nat_exp<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;n&nbsp;\in&nbsp;exp<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;e1&nbsp;\in&nbsp;exp&nbsp;&nbsp;e2&nbsp;\in&nbsp;exp<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;------------------------&nbsp;plus_exp<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;e1&nbsp;+&nbsp;e2&nbsp;\in&nbsp;exp<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;e1&nbsp;\in&nbsp;\exp&nbsp;e2&nbsp;\in&nbsp;exp<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;------------------------&nbsp;times_exp<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;e1&nbsp;*&nbsp;e2&nbsp;\in&nbsp;exp<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Right now it's just a bunch of syntax.
+
+</li>
+<li> What about its semantics?
+
+</li>
+<li> Let's define it as an inductive relation!
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Inductive</span> <a id="exp_step" class="idref" href="#exp_step"><span class="id" title="inductive">exp_step</span></a> : <a class="idref" href="lec_04_rel.html#exp"><span class="id" title="inductive">exp</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_04_rel.html#exp"><span class="id" title="inductive">exp</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">Prop</span> :=<br/>
+| <a id="plus_reduce" class="idref" href="#plus_reduce"><span class="id" title="constructor">plus_reduce</span></a> :<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">forall</span> (<a id="n1:29" class="idref" href="#n1:29"><span class="id" title="binder">n1</span></a> <a id="n2:30" class="idref" href="#n2:30"><span class="id" title="binder">n2</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_04_rel.html#exp_step:27"><span class="id" title="inductive">exp_step</span></a> (<a class="idref" href="lec_04_rel.html#plus_exp"><span class="id" title="constructor">plus_exp</span></a> (<a class="idref" href="lec_04_rel.html#nat_exp"><span class="id" title="constructor">nat_exp</span></a> <a class="idref" href="lec_04_rel.html#n1:29"><span class="id" title="variable">n1</span></a>) (<a class="idref" href="lec_04_rel.html#nat_exp"><span class="id" title="constructor">nat_exp</span></a> <a class="idref" href="lec_04_rel.html#n2:30"><span class="id" title="variable">n2</span></a>)) (<a class="idref" href="lec_04_rel.html#nat_exp"><span class="id" title="constructor">nat_exp</span></a> (<a class="idref" href="lec_04_rel.html#n1:29"><span class="id" title="variable">n1</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Peano.html#0dacc1786c5ba797d47dd85006231633"><span class="id" title="notation">+</span></a> <a class="idref" href="lec_04_rel.html#n2:30"><span class="id" title="variable">n2</span></a>))<br/>
+| <a id="plus_reduce_left" class="idref" href="#plus_reduce_left"><span class="id" title="constructor">plus_reduce_left</span></a> :<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">forall</span> (<a id="e1:31" class="idref" href="#e1:31"><span class="id" title="binder">e1</span></a> <a id="e2:32" class="idref" href="#e2:32"><span class="id" title="binder">e2</span></a>: <a class="idref" href="lec_04_rel.html#exp"><span class="id" title="inductive">exp</span></a>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">forall</span> (<a id="e1':33" class="idref" href="#e1':33"><span class="id" title="binder">e1'</span></a>: <a class="idref" href="lec_04_rel.html#exp"><span class="id" title="inductive">exp</span></a>), <a class="idref" href="lec_04_rel.html#exp_step:27"><span class="id" title="inductive">exp_step</span></a> <a class="idref" href="lec_04_rel.html#e1:31"><span class="id" title="variable">e1</span></a> <a class="idref" href="lec_04_rel.html#e1':33"><span class="id" title="variable">e1'</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_04_rel.html#exp_step:27"><span class="id" title="inductive">exp_step</span></a> (<a class="idref" href="lec_04_rel.html#plus_exp"><span class="id" title="constructor">plus_exp</span></a> <a class="idref" href="lec_04_rel.html#e1:31"><span class="id" title="variable">e1</span></a> <a class="idref" href="lec_04_rel.html#e2:32"><span class="id" title="variable">e2</span></a>) (<a class="idref" href="lec_04_rel.html#plus_exp"><span class="id" title="constructor">plus_exp</span></a> <a class="idref" href="lec_04_rel.html#e1':33"><span class="id" title="variable">e1'</span></a> <a class="idref" href="lec_04_rel.html#e2:32"><span class="id" title="variable">e2</span></a>)<br/>
+| <a id="plus_reduce_right" class="idref" href="#plus_reduce_right"><span class="id" title="constructor">plus_reduce_right</span></a> :<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">forall</span> (<a id="n:34" class="idref" href="#n:34"><span class="id" title="binder">n</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) (<a id="e2:35" class="idref" href="#e2:35"><span class="id" title="binder">e2</span></a>: <a class="idref" href="lec_04_rel.html#exp"><span class="id" title="inductive">exp</span></a>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">forall</span> (<a id="e2':36" class="idref" href="#e2':36"><span class="id" title="binder">e2'</span></a>: <a class="idref" href="lec_04_rel.html#exp"><span class="id" title="inductive">exp</span></a>), <a class="idref" href="lec_04_rel.html#exp_step:27"><span class="id" title="inductive">exp_step</span></a> <a class="idref" href="lec_04_rel.html#e2:35"><span class="id" title="variable">e2</span></a> <a class="idref" href="lec_04_rel.html#e2':36"><span class="id" title="variable">e2'</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_04_rel.html#exp_step:27"><span class="id" title="inductive">exp_step</span></a> (<a class="idref" href="lec_04_rel.html#plus_exp"><span class="id" title="constructor">plus_exp</span></a> (<a class="idref" href="lec_04_rel.html#nat_exp"><span class="id" title="constructor">nat_exp</span></a> <a class="idref" href="lec_04_rel.html#n:34"><span class="id" title="variable">n</span></a>) <a class="idref" href="lec_04_rel.html#e2:35"><span class="id" title="variable">e2</span></a>) (<a class="idref" href="lec_04_rel.html#plus_exp"><span class="id" title="constructor">plus_exp</span></a> (<a class="idref" href="lec_04_rel.html#nat_exp"><span class="id" title="constructor">nat_exp</span></a> <a class="idref" href="lec_04_rel.html#n:34"><span class="id" title="variable">n</span></a>) <a class="idref" href="lec_04_rel.html#e2':36"><span class="id" title="variable">e2'</span></a>)<br/>
+| <a id="times_reduce" class="idref" href="#times_reduce"><span class="id" title="constructor">times_reduce</span></a> :<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">forall</span> (<a id="n1:37" class="idref" href="#n1:37"><span class="id" title="binder">n1</span></a> <a id="n2:38" class="idref" href="#n2:38"><span class="id" title="binder">n2</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_04_rel.html#exp_step:27"><span class="id" title="inductive">exp_step</span></a> (<a class="idref" href="lec_04_rel.html#times_exp"><span class="id" title="constructor">times_exp</span></a> (<a class="idref" href="lec_04_rel.html#nat_exp"><span class="id" title="constructor">nat_exp</span></a> <a class="idref" href="lec_04_rel.html#n1:37"><span class="id" title="variable">n1</span></a>) (<a class="idref" href="lec_04_rel.html#nat_exp"><span class="id" title="constructor">nat_exp</span></a> <a class="idref" href="lec_04_rel.html#n2:38"><span class="id" title="variable">n2</span></a>)) (<a class="idref" href="lec_04_rel.html#nat_exp"><span class="id" title="constructor">nat_exp</span></a> (<a class="idref" href="lec_04_rel.html#n1:37"><span class="id" title="variable">n1</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Peano.html#ea2ff3d561159081cea6fb2e8113cc54"><span class="id" title="notation">*</span></a> <a class="idref" href="lec_04_rel.html#n2:38"><span class="id" title="variable">n2</span></a>))<br/>
+| <a id="times_reduce_left" class="idref" href="#times_reduce_left"><span class="id" title="constructor">times_reduce_left</span></a> :<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">forall</span> (<a id="e1:39" class="idref" href="#e1:39"><span class="id" title="binder">e1</span></a> <a id="e2:40" class="idref" href="#e2:40"><span class="id" title="binder">e2</span></a>: <a class="idref" href="lec_04_rel.html#exp"><span class="id" title="inductive">exp</span></a>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">forall</span> (<a id="e1':41" class="idref" href="#e1':41"><span class="id" title="binder">e1'</span></a>: <a class="idref" href="lec_04_rel.html#exp"><span class="id" title="inductive">exp</span></a>), <a class="idref" href="lec_04_rel.html#exp_step:27"><span class="id" title="inductive">exp_step</span></a> <a class="idref" href="lec_04_rel.html#e1:39"><span class="id" title="variable">e1</span></a> <a class="idref" href="lec_04_rel.html#e1':41"><span class="id" title="variable">e1'</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_04_rel.html#exp_step:27"><span class="id" title="inductive">exp_step</span></a> (<a class="idref" href="lec_04_rel.html#times_exp"><span class="id" title="constructor">times_exp</span></a> <a class="idref" href="lec_04_rel.html#e1:39"><span class="id" title="variable">e1</span></a> <a class="idref" href="lec_04_rel.html#e2:40"><span class="id" title="variable">e2</span></a>) (<a class="idref" href="lec_04_rel.html#times_exp"><span class="id" title="constructor">times_exp</span></a> <a class="idref" href="lec_04_rel.html#e1':41"><span class="id" title="variable">e1'</span></a> <a class="idref" href="lec_04_rel.html#e2:40"><span class="id" title="variable">e2</span></a>)<br/>
+| <a id="times_reduce_right" class="idref" href="#times_reduce_right"><span class="id" title="constructor">times_reduce_right</span></a> :<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">forall</span> (<a id="n:42" class="idref" href="#n:42"><span class="id" title="binder">n</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) (<a id="e2:43" class="idref" href="#e2:43"><span class="id" title="binder">e2</span></a>: <a class="idref" href="lec_04_rel.html#exp"><span class="id" title="inductive">exp</span></a>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">forall</span> (<a id="e2':44" class="idref" href="#e2':44"><span class="id" title="binder">e2'</span></a>: <a class="idref" href="lec_04_rel.html#exp"><span class="id" title="inductive">exp</span></a>), <a class="idref" href="lec_04_rel.html#exp_step:27"><span class="id" title="inductive">exp_step</span></a> <a class="idref" href="lec_04_rel.html#e2:43"><span class="id" title="variable">e2</span></a> <a class="idref" href="lec_04_rel.html#e2':44"><span class="id" title="variable">e2'</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_04_rel.html#exp_step:27"><span class="id" title="inductive">exp_step</span></a> (<a class="idref" href="lec_04_rel.html#times_exp"><span class="id" title="constructor">times_exp</span></a> (<a class="idref" href="lec_04_rel.html#nat_exp"><span class="id" title="constructor">nat_exp</span></a> <a class="idref" href="lec_04_rel.html#n:42"><span class="id" title="variable">n</span></a>) <a class="idref" href="lec_04_rel.html#e2:43"><span class="id" title="variable">e2</span></a>) (<a class="idref" href="lec_04_rel.html#times_exp"><span class="id" title="constructor">times_exp</span></a> (<a class="idref" href="lec_04_rel.html#nat_exp"><span class="id" title="constructor">nat_exp</span></a> <a class="idref" href="lec_04_rel.html#n:42"><span class="id" title="variable">n</span></a>) <a class="idref" href="lec_04_rel.html#e2':44"><span class="id" title="variable">e2'</span></a>).<br/>
+
+<br/>
+<span class="id" title="keyword">Print</span> <a class="idref" href="lec_04_rel.html#exp_step_ind"><span class="id" title="definition">exp_step_ind</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab22"></a><h3 class="section">Inference rule view</h3>
+
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;----------------------&nbsp;plus_reduce<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"n1&nbsp;+&nbsp;n2"&nbsp;-&gt;&nbsp;n1&nbsp;+&nbsp;n2<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;e1&nbsp;-&gt;&nbsp;e1'<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;------------------------&nbsp;plus_reduce_left<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"e1&nbsp;+&nbsp;e2"&nbsp;-&gt;&nbsp;"e1'&nbsp;+&nbsp;e2"<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;e2&nbsp;-&gt;&nbsp;e2'<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;------------------------&nbsp;plus_reduce_right<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"n&nbsp;+&nbsp;e2"&nbsp;-&gt;&nbsp;"n&nbsp;+&nbsp;e2'"<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;----------------------&nbsp;times_reduce<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"n1&nbsp;*&nbsp;n2"&nbsp;-&gt;&nbsp;n1&nbsp;*&nbsp;n2<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;e1&nbsp;-&gt;&nbsp;e1'<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;------------------------&nbsp;times_reduce_left<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"e1&nbsp;*&nbsp;e2"&nbsp;-&gt;&nbsp;"e1'&nbsp;*&nbsp;e2"<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;e2&nbsp;-&gt;&nbsp;e2'<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;------------------------&nbsp;times_reduce_right<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"n&nbsp;*&nbsp;e2"&nbsp;-&gt;&nbsp;"n&nbsp;*&nbsp;e2'"<br/>
+<br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Our first property of the step relation is progress: either we reduce to a
+     natural number or there is a step that we can take.
+
+</li>
+<li> We will prove this by induction on the structure of the expression <span class="inlinecode"><span class="id" title="var">exp</span></span>.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Theorem</span> <a id="exp_progress" class="idref" href="#exp_progress"><span class="id" title="lemma">exp_progress</span></a>:<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">forall</span> (<a id="e:45" class="idref" href="#e:45"><span class="id" title="binder">e</span></a>: <a class="idref" href="lec_04_rel.html#exp"><span class="id" title="inductive">exp</span></a>),<br/>
+&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#f031fe1957c4a4a8e217aa46af2b4e25"><span class="id" title="notation">(</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">exists</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">(</span></a><a id="n:46" class="idref" href="#n:46"><span class="id" title="binder">n</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">),</span></a> <a class="idref" href="lec_04_rel.html#e:45"><span class="id" title="variable">e</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="lec_04_rel.html#nat_exp"><span class="id" title="constructor">nat_exp</span></a> <a class="idref" href="lec_04_rel.html#n:46"><span class="id" title="variable">n</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#f031fe1957c4a4a8e217aa46af2b4e25"><span class="id" title="notation">)</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#f031fe1957c4a4a8e217aa46af2b4e25"><span class="id" title="notation">\/</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">exists</span></a> <a id="e':47" class="idref" href="#e':47"><span class="id" title="binder">e'</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">,</span></a> <a class="idref" href="lec_04_rel.html#exp_step"><span class="id" title="inductive">exp_step</span></a> <a class="idref" href="lec_04_rel.html#e:45"><span class="id" title="variable">e</span></a> <a class="idref" href="lec_04_rel.html#e':47"><span class="id" title="variable">e'</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">induction</span> <span class="id" title="var">e</span>.<br/>
+&nbsp;&nbsp;{ <span class="comment">(*&nbsp;nat_exp&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">left</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">exists</span> <span class="id" title="var">n</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;{ <span class="comment">(*&nbsp;plus_exp&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">IHe1</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">IHe2</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="id" title="tactic">right</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">H0</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="var">H0</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">exists</span> (<a class="idref" href="lec_04_rel.html#nat_exp"><span class="id" title="constructor">nat_exp</span></a> (<span class="id" title="var">x</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Peano.html#0dacc1786c5ba797d47dd85006231633"><span class="id" title="notation">+</span></a> <span class="id" title="var">x0</span>)).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="lec_04_rel.html#plus_reduce"><span class="id" title="constructor">plus_reduce</span></a>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="id" title="tactic">right</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">H0</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">exists</span> (<a class="idref" href="lec_04_rel.html#plus_exp"><span class="id" title="constructor">plus_exp</span></a> (<a class="idref" href="lec_04_rel.html#nat_exp"><span class="id" title="constructor">nat_exp</span></a> <span class="id" title="var">x</span>) <span class="id" title="var">x0</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="lec_04_rel.html#plus_reduce_right"><span class="id" title="constructor">plus_reduce_right</span></a>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <span class="id" title="var">H0</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="id" title="tactic">destruct</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">IHe2</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">right</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">H0</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">exists</span> (<a class="idref" href="lec_04_rel.html#plus_exp"><span class="id" title="constructor">plus_exp</span></a> <span class="id" title="var">x</span> <span class="id" title="var">e2</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="lec_04_rel.html#plus_reduce_left"><span class="id" title="constructor">plus_reduce_left</span></a>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">right</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">H0</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">exists</span> (<a class="idref" href="lec_04_rel.html#plus_exp"><span class="id" title="constructor">plus_exp</span></a> <span class="id" title="var">x</span> <span class="id" title="var">e2</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="lec_04_rel.html#plus_reduce_left"><span class="id" title="constructor">plus_reduce_left</span></a>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">IHe1</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">IHe2</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="id" title="tactic">right</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">H0</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="var">H0</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">exists</span> (<a class="idref" href="lec_04_rel.html#nat_exp"><span class="id" title="constructor">nat_exp</span></a> (<span class="id" title="var">x</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Peano.html#ea2ff3d561159081cea6fb2e8113cc54"><span class="id" title="notation">*</span></a> <span class="id" title="var">x0</span>)).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="lec_04_rel.html#times_reduce"><span class="id" title="constructor">times_reduce</span></a>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="id" title="tactic">right</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">H0</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">exists</span> (<a class="idref" href="lec_04_rel.html#times_exp"><span class="id" title="constructor">times_exp</span></a> (<a class="idref" href="lec_04_rel.html#nat_exp"><span class="id" title="constructor">nat_exp</span></a> <span class="id" title="var">x</span>) <span class="id" title="var">x0</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="lec_04_rel.html#times_reduce_right"><span class="id" title="constructor">times_reduce_right</span></a>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <span class="id" title="var">H0</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="id" title="tactic">destruct</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">IHe2</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">right</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">H0</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">exists</span> (<a class="idref" href="lec_04_rel.html#times_exp"><span class="id" title="constructor">times_exp</span></a> <span class="id" title="var">x</span> <span class="id" title="var">e2</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="lec_04_rel.html#times_reduce_left"><span class="id" title="constructor">times_reduce_left</span></a>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">right</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">H0</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">exists</span> (<a class="idref" href="lec_04_rel.html#times_exp"><span class="id" title="constructor">times_exp</span></a> <span class="id" title="var">x</span> <span class="id" title="var">e2</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="lec_04_rel.html#times_reduce_left"><span class="id" title="constructor">times_reduce_left</span></a>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;}<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> You might have noticed that we could have given alternative semantics.
+
+</li>
+<li> In particular, why bother with an inductive proposition at all?
+
+</li>
+<li> Here's a sneak peak.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Fixpoint</span> <a id="eval_exp" class="idref" href="#eval_exp"><span class="id" title="definition">eval_exp</span></a> (<a id="e:48" class="idref" href="#e:48"><span class="id" title="binder">e</span></a>: <a class="idref" href="lec_04_rel.html#exp"><span class="id" title="inductive">exp</span></a>) : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#option"><span class="id" title="inductive">option</span></a> <a class="idref" href="lec_04_rel.html#exp"><span class="id" title="inductive">exp</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="lec_04_rel.html#e:48"><span class="id" title="variable">e</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;| <a class="idref" href="lec_04_rel.html#nat_exp"><span class="id" title="constructor">nat_exp</span></a> <span class="id" title="var">n</span> =&gt; <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> (<a class="idref" href="lec_04_rel.html#nat_exp"><span class="id" title="constructor">nat_exp</span></a> <span class="id" title="var">n</span>)<br/>
+&nbsp;&nbsp;| <a class="idref" href="lec_04_rel.html#plus_exp"><span class="id" title="constructor">plus_exp</span></a> <span class="id" title="var">e1</span> <span class="id" title="var">e2</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="lec_04_rel.html#eval_exp:49"><span class="id" title="definition">eval_exp</span></a> <span class="id" title="var">e1</span>, <a class="idref" href="lec_04_rel.html#eval_exp:49"><span class="id" title="definition">eval_exp</span></a> <span class="id" title="var">e2</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> (<a class="idref" href="lec_04_rel.html#nat_exp"><span class="id" title="constructor">nat_exp</span></a> <span class="id" title="var">n1</span>), <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> (<a class="idref" href="lec_04_rel.html#nat_exp"><span class="id" title="constructor">nat_exp</span></a> <span class="id" title="var">n2</span>) =&gt; <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> (<a class="idref" href="lec_04_rel.html#nat_exp"><span class="id" title="constructor">nat_exp</span></a> (<span class="id" title="var">n1</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Peano.html#0dacc1786c5ba797d47dd85006231633"><span class="id" title="notation">+</span></a> <span class="id" title="var">n2</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <span class="id" title="var">_</span> =&gt; <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#None"><span class="id" title="constructor">None</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
+&nbsp;&nbsp;| <a class="idref" href="lec_04_rel.html#times_exp"><span class="id" title="constructor">times_exp</span></a> <span class="id" title="var">e1</span> <span class="id" title="var">e2</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="lec_04_rel.html#eval_exp:49"><span class="id" title="definition">eval_exp</span></a> <span class="id" title="var">e1</span>, <a class="idref" href="lec_04_rel.html#eval_exp:49"><span class="id" title="definition">eval_exp</span></a> <span class="id" title="var">e2</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> (<a class="idref" href="lec_04_rel.html#nat_exp"><span class="id" title="constructor">nat_exp</span></a> <span class="id" title="var">n1</span>), <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> (<a class="idref" href="lec_04_rel.html#nat_exp"><span class="id" title="constructor">nat_exp</span></a> <span class="id" title="var">n2</span>) =&gt; <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> (<a class="idref" href="lec_04_rel.html#nat_exp"><span class="id" title="constructor">nat_exp</span></a> (<span class="id" title="var">n1</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Peano.html#ea2ff3d561159081cea6fb2e8113cc54"><span class="id" title="notation">*</span></a> <span class="id" title="var">n2</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <span class="id" title="var">_</span> =&gt; <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#None"><span class="id" title="constructor">None</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> We might be interested in proving that such semantics are equivalent.
+
+</li>
+<li> We'll save this for some other time.
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+<a id="lab23"></a><h2 class="section">The Curry Howard Correspondence</h2>
+
+<div class="paragraph"> </div>
+
+<a id="lab24"></a><h3 class="section">The analogy:</h3>
+
+
+<div class="paragraph"> </div>
+
+   propositions ~ types
+   proofs       ~ data values
+
+<div class="paragraph"> </div>
+
+   In other words, "proving a theorem is the same as constructing a term
+   of the appropriate type".
+
+<div class="paragraph"> </div>
+
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Print</span> <a class="idref" href="lec_04_rel.html#ev_4"><span class="id" title="lemma">ev_4</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> A proof script is a more high-level way to build up a term of that type.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Theorem</span> <a id="ev_4''" class="idref" href="#ev_4''"><span class="id" title="lemma">ev_4''</span></a> : <a class="idref" href="lec_04_rel.html#ev"><span class="id" title="inductive">ev</span></a> 4.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Show</span> <span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="lec_04_rel.html#ev_SS"><span class="id" title="constructor">ev_SS</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Show</span> <span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="lec_04_rel.html#ev_SS"><span class="id" title="constructor">ev_SS</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Show</span> <span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="lec_04_rel.html#ev_0"><span class="id" title="constructor">ev_0</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Show</span> <span class="id" title="keyword">Proof</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab25"></a><h3 class="section">Forall/-&gt; and functions</h3>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Theorem</span> <a id="ev_plus4'" class="idref" href="#ev_plus4'"><span class="id" title="lemma">ev_plus4'</span></a> :<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">forall</span> <a id="n:51" class="idref" href="#n:51"><span class="id" title="binder">n</span></a>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_04_rel.html#ev"><span class="id" title="inductive">ev</span></a> <a class="idref" href="lec_04_rel.html#n:51"><span class="id" title="variable">n</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_04_rel.html#ev"><span class="id" title="inductive">ev</span></a> (4 <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Peano.html#0dacc1786c5ba797d47dd85006231633"><span class="id" title="notation">+</span></a> <a class="idref" href="lec_04_rel.html#n:51"><span class="id" title="variable">n</span></a>).<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span> <span class="id" title="var">n</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="lec_04_rel.html#ev_SS"><span class="id" title="constructor">ev_SS</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="lec_04_rel.html#ev_SS"><span class="id" title="constructor">ev_SS</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <span class="id" title="var">H</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="ev_plus4''" class="idref" href="#ev_plus4''"><span class="id" title="definition">ev_plus4''</span></a>: <span class="id" title="keyword">forall</span> (<a id="n:52" class="idref" href="#n:52"><span class="id" title="binder">n</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>), <a class="idref" href="lec_04_rel.html#ev"><span class="id" title="inductive">ev</span></a> <a class="idref" href="lec_04_rel.html#n:52"><span class="id" title="variable">n</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_04_rel.html#ev"><span class="id" title="inductive">ev</span></a> (4 <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Peano.html#0dacc1786c5ba797d47dd85006231633"><span class="id" title="notation">+</span></a> <a class="idref" href="lec_04_rel.html#n:52"><span class="id" title="variable">n</span></a>) :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> (<a id="n:53" class="idref" href="#n:53"><span class="id" title="binder">n</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) =&gt; <span class="id" title="keyword">fun</span> (<a id="H:54" class="idref" href="#H:54"><span class="id" title="binder">H</span></a> : <a class="idref" href="lec_04_rel.html#ev"><span class="id" title="inductive">ev</span></a> <a class="idref" href="lec_04_rel.html#n:53"><span class="id" title="variable">n</span></a>) =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_04_rel.html#ev_SS"><span class="id" title="constructor">ev_SS</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> <a class="idref" href="lec_04_rel.html#n:53"><span class="id" title="variable">n</span></a>)) (<a class="idref" href="lec_04_rel.html#ev_SS"><span class="id" title="constructor">ev_SS</span></a> <a class="idref" href="lec_04_rel.html#n:53"><span class="id" title="variable">n</span></a> <a class="idref" href="lec_04_rel.html#H:54"><span class="id" title="variable">H</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab26"></a><h3 class="section">Conjunction and products</h3>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Print</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Datatypes.html#prod"><span class="id" title="inductive">prod</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Theorem</span> <a id="proj1'" class="idref" href="#proj1'"><span class="id" title="lemma">proj1'</span></a> :<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">forall</span> <a id="P:55" class="idref" href="#P:55"><span class="id" title="binder">P</span></a> <a id="Q:56" class="idref" href="#Q:56"><span class="id" title="binder">Q</span></a>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="lec_04_rel.html#P:55"><span class="id" title="variable">P</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#ba2b0e492d2b4675a0acf3ea92aabadd"><span class="id" title="notation">/\</span></a> <a class="idref" href="lec_04_rel.html#Q:56"><span class="id" title="variable">Q</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_04_rel.html#P:55"><span class="id" title="variable">P</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span> <span class="id" title="var">P</span> <span class="id" title="var">Q</span> <span class="id" title="var">HPQ</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">HPQ</span> <span class="id" title="keyword">as</span> [<span class="id" title="var">HP</span> <span class="id" title="var">HQ</span>].<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <span class="id" title="var">HP</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Show</span> <span class="id" title="keyword">Proof</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Print</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#conj"><span class="id" title="constructor">conj</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="proj1''" class="idref" href="#proj1''"><span class="id" title="definition">proj1''</span></a>: <span class="id" title="keyword">forall</span> <a id="P:57" class="idref" href="#P:57"><span class="id" title="binder">P</span></a> <a id="Q:58" class="idref" href="#Q:58"><span class="id" title="binder">Q</span></a>, <a class="idref" href="lec_04_rel.html#P:57"><span class="id" title="variable">P</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#ba2b0e492d2b4675a0acf3ea92aabadd"><span class="id" title="notation">/\</span></a> <a class="idref" href="lec_04_rel.html#Q:58"><span class="id" title="variable">Q</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_04_rel.html#P:57"><span class="id" title="variable">P</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> (<a id="P:59" class="idref" href="#P:59"><span class="id" title="binder">P</span></a> <a id="Q:60" class="idref" href="#Q:60"><span class="id" title="binder">Q</span></a>: <span class="id" title="keyword">Prop</span>) =&gt;<span class="id" title="keyword">fun</span> (<a id="HPQ:61" class="idref" href="#HPQ:61"><span class="id" title="binder">HPQ</span></a>: <a class="idref" href="lec_04_rel.html#P:59"><span class="id" title="variable">P</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#ba2b0e492d2b4675a0acf3ea92aabadd"><span class="id" title="notation">/\</span></a> <a class="idref" href="lec_04_rel.html#Q:60"><span class="id" title="variable">Q</span></a>) =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="lec_04_rel.html#HPQ:61"><span class="id" title="variable">HPQ</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#conj"><span class="id" title="constructor">conj</span></a> <span class="id" title="var">HP</span> <span class="id" title="var">_</span> =&gt; <span class="id" title="var">HP</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab27"></a><h3 class="section">Disjunction and sums</h3>
+
+</div>
+<div class="code">
+
+<br/>
+
+<br/>
+<span class="id" title="keyword">Theorem</span> <a id="inj_l'" class="idref" href="#inj_l'"><span class="id" title="lemma">inj_l'</span></a> : <span class="id" title="keyword">forall</span> (<a id="P:63" class="idref" href="#P:63"><span class="id" title="binder">P</span></a> <a id="Q:64" class="idref" href="#Q:64"><span class="id" title="binder">Q</span></a> : <span class="id" title="keyword">Prop</span>), <a class="idref" href="lec_04_rel.html#P:63"><span class="id" title="variable">P</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_04_rel.html#P:63"><span class="id" title="variable">P</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#f031fe1957c4a4a8e217aa46af2b4e25"><span class="id" title="notation">\/</span></a> <a class="idref" href="lec_04_rel.html#Q:64"><span class="id" title="variable">Q</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span> <span class="id" title="var">P</span> <span class="id" title="var">Q</span> <span class="id" title="var">HP</span>. <span class="id" title="tactic">left</span>. <span class="id" title="tactic">apply</span> <span class="id" title="var">HP</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Show</span> <span class="id" title="keyword">Proof</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="inj_l" class="idref" href="#inj_l"><span class="id" title="definition">inj_l</span></a> : <span class="id" title="keyword">forall</span> (<a id="P:65" class="idref" href="#P:65"><span class="id" title="binder">P</span></a> <a id="Q:66" class="idref" href="#Q:66"><span class="id" title="binder">Q</span></a> : <span class="id" title="keyword">Prop</span>), <a class="idref" href="lec_04_rel.html#P:65"><span class="id" title="variable">P</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_04_rel.html#P:65"><span class="id" title="variable">P</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#f031fe1957c4a4a8e217aa46af2b4e25"><span class="id" title="notation">\/</span></a> <a class="idref" href="lec_04_rel.html#Q:66"><span class="id" title="variable">Q</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <a id="P:67" class="idref" href="#P:67"><span class="id" title="binder">P</span></a> <a id="Q:68" class="idref" href="#Q:68"><span class="id" title="binder">Q</span></a> <a id="HP:69" class="idref" href="#HP:69"><span class="id" title="binder">HP</span></a> =&gt; <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#or_introl"><span class="id" title="constructor">or_introl</span></a> <a class="idref" href="lec_04_rel.html#HP:69"><span class="id" title="variable">HP</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab28"></a><h3 class="section">Existentials</h3>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Print</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#ex_intro"><span class="id" title="constructor">ex_intro</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Check</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#ex"><span class="id" title="inductive">ex</span></a> (<span class="id" title="keyword">fun</span> <a id="n:70" class="idref" href="#n:70"><span class="id" title="binder">n</span></a> =&gt; <a class="idref" href="lec_04_rel.html#ev"><span class="id" title="inductive">ev</span></a> <a class="idref" href="lec_04_rel.html#n:70"><span class="id" title="variable">n</span></a>) : <span class="id" title="keyword">Prop</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="some_nat_is_even" class="idref" href="#some_nat_is_even"><span class="id" title="definition">some_nat_is_even</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">exists</span></a> <a id="n:71" class="idref" href="#n:71"><span class="id" title="binder">n</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">,</span></a> <a class="idref" href="lec_04_rel.html#ev"><span class="id" title="inductive">ev</span></a> <a class="idref" href="lec_04_rel.html#n:71"><span class="id" title="variable">n</span></a> :=<br/>
+&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#ex_intro"><span class="id" title="constructor">ex_intro</span></a> <a class="idref" href="lec_04_rel.html#ev"><span class="id" title="inductive">ev</span></a> 4 (<a class="idref" href="lec_04_rel.html#ev_SS"><span class="id" title="constructor">ev_SS</span></a> 2 (<a class="idref" href="lec_04_rel.html#ev_SS"><span class="id" title="constructor">ev_SS</span></a> 0 <a class="idref" href="lec_04_rel.html#ev_0"><span class="id" title="constructor">ev_0</span></a>)).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab29"></a><h3 class="section">True/False</h3>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Print</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#True"><span class="id" title="inductive">True</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Fact</span> <a id="p_implies_true" class="idref" href="#p_implies_true"><span class="id" title="lemma">p_implies_true</span></a> : <span class="id" title="keyword">forall</span> <a id="P:72" class="idref" href="#P:72"><span class="id" title="binder">P</span></a>, <a class="idref" href="lec_04_rel.html#P:72"><span class="id" title="variable">P</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#True"><span class="id" title="inductive">True</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#I"><span class="id" title="constructor">I</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Show</span> <span class="id" title="keyword">Proof</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="p_implies_true'" class="idref" href="#p_implies_true'"><span class="id" title="definition">p_implies_true'</span></a>: <span class="id" title="keyword">forall</span> <a id="P:73" class="idref" href="#P:73"><span class="id" title="binder">P</span></a>, <a class="idref" href="lec_04_rel.html#P:73"><span class="id" title="variable">P</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#True"><span class="id" title="inductive">True</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> (<a id="P:74" class="idref" href="#P:74"><span class="id" title="binder">P</span></a>: <span class="id" title="keyword">Type</span>) =&gt; <span class="id" title="keyword">fun</span> (<span class="id" title="var">_</span> : <a class="idref" href="lec_04_rel.html#P:74"><span class="id" title="variable">P</span></a>) =&gt; <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#I"><span class="id" title="constructor">I</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Print</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#False"><span class="id" title="inductive">False</span></a>.<br/>
+
+<br/>
+<span class="id" title="var">Fail</span> <span class="id" title="keyword">Definition</span> <a id="contra" class="idref" href="#contra"><span class="id" title="definition">contra</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#False"><span class="id" title="inductive">False</span></a> :=<br/>
+&nbsp;&nbsp;0 <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> 1.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="false_implies_zero_eq_one" class="idref" href="#false_implies_zero_eq_one"><span class="id" title="definition">false_implies_zero_eq_one</span></a>: <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#False"><span class="id" title="inductive">False</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> 0 <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> 1 :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <a id="contra:75" class="idref" href="#contra:75"><span class="id" title="binder">contra</span></a> =&gt; <span class="id" title="keyword">match</span> <a class="idref" href="lec_04_rel.html#contra:75"><span class="id" title="variable">contra</span></a> <span class="id" title="keyword">with</span> <span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab30"></a><h3 class="section">Equality</h3>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Locate</span> "=".<br/>
+
+<br/>
+<span class="id" title="keyword">Print</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#eq"><span class="id" title="inductive">eq</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="four" class="idref" href="#four"><span class="id" title="lemma">four</span></a>: 2 <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Peano.html#0dacc1786c5ba797d47dd85006231633"><span class="id" title="notation">+</span></a> 2 <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> 1 <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Peano.html#0dacc1786c5ba797d47dd85006231633"><span class="id" title="notation">+</span></a> 3.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#eq_refl"><span class="id" title="constructor">eq_refl</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Show</span> <span class="id" title="keyword">Proof</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Print</span> <a class="idref" href="lec_04_rel.html#four"><span class="id" title="lemma">four</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> We might wonder if Coq's definition of equality is too restrictive.
+
+</li>
+<li> It turns out that it is (logically) equvialent to Leibniz equality.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="equality_implies_leibniz_equality" class="idref" href="#equality_implies_leibniz_equality"><span class="id" title="lemma">equality_implies_leibniz_equality</span></a> : <span class="id" title="keyword">forall</span> (<a id="X:77" class="idref" href="#X:77"><span class="id" title="binder">X</span></a> : <span class="id" title="keyword">Type</span>) (<a id="x:78" class="idref" href="#x:78"><span class="id" title="binder">x</span></a> <a id="y:79" class="idref" href="#y:79"><span class="id" title="binder">y</span></a>: <a class="idref" href="lec_04_rel.html#X:77"><span class="id" title="variable">X</span></a>),<br/>
+&nbsp;&nbsp;<a class="idref" href="lec_04_rel.html#x:78"><span class="id" title="variable">x</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="lec_04_rel.html#y:79"><span class="id" title="variable">y</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">forall</span> <a id="P:80" class="idref" href="#P:80"><span class="id" title="binder">P</span></a>: <a class="idref" href="lec_04_rel.html#X:77"><span class="id" title="variable">X</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">Prop</span>, <a class="idref" href="lec_04_rel.html#P:80"><span class="id" title="variable">P</span></a> <a class="idref" href="lec_04_rel.html#x:78"><span class="id" title="variable">x</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_04_rel.html#P:80"><span class="id" title="variable">P</span></a> <a class="idref" href="lec_04_rel.html#y:79"><span class="id" title="variable">y</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> &lt;- <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">assumption</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="leibniz_equality_implies_equality" class="idref" href="#leibniz_equality_implies_equality"><span class="id" title="lemma">leibniz_equality_implies_equality</span></a> : <span class="id" title="keyword">forall</span> (<a id="X:81" class="idref" href="#X:81"><span class="id" title="binder">X</span></a> : <span class="id" title="keyword">Type</span>) (<a id="x:82" class="idref" href="#x:82"><span class="id" title="binder">x</span></a> <a id="y:83" class="idref" href="#y:83"><span class="id" title="binder">y</span></a>: <a class="idref" href="lec_04_rel.html#X:81"><span class="id" title="variable">X</span></a>),<br/>
+&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">(</span></a><span class="id" title="keyword">forall</span> <a id="P:84" class="idref" href="#P:84"><span class="id" title="binder">P</span></a>: <a class="idref" href="lec_04_rel.html#X:81"><span class="id" title="variable">X</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">Prop</span>, <a class="idref" href="lec_04_rel.html#P:84"><span class="id" title="variable">P</span></a> <a class="idref" href="lec_04_rel.html#x:82"><span class="id" title="variable">x</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_04_rel.html#P:84"><span class="id" title="variable">P</span></a> <a class="idref" href="lec_04_rel.html#y:83"><span class="id" title="variable">y</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">)</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="lec_04_rel.html#x:82"><span class="id" title="variable">x</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="lec_04_rel.html#y:83"><span class="id" title="variable">y</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="comment">(*&nbsp;This&nbsp;part&nbsp;is&nbsp;the&nbsp;interesting&nbsp;bit&nbsp;of&nbsp;the&nbsp;proof&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="tactic">specialize</span> (<span class="id" title="var">H</span> (<span class="id" title="keyword">fun</span> <a id="z:86" class="idref" href="#z:86"><span class="id" title="binder">z</span></a> =&gt; <span class="id" title="var">x</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.12.2/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="lec_04_rel.html#z:85"><span class="id" title="variable">z</span></a>)).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">simpl</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <span class="id" title="var">H</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">reflexivity</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab31"></a><h2 class="section">Summary</h2>
+
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> We saw inductively defined propositions, induction, and proof trees.
+
+</li>
+<li> We introduced an arithmetic expression language and operational semantics.
+
+</li>
+<li> We saw the  Curry-Howard isomorphism and equality as an inductive type.
+
+</li>
+</ul>
+ 
+</div>
+<div class="code">
+</div>
+</div>
+
+<div id="footer">
+<hr/><a href="index.html">Index</a><hr/>This page has been generated by <a href="http://coq.inria.fr/">coqdoc</a>
+</div>
+
+</div>
+
+</body>
+</html>
