@@ -14,6 +14,9 @@ These notes would not be possible without these amazing resources.
 
 The notes draw heavily from these resources.
 
+You can get the Coq files here: [FMS Github](https://github.com/danehuang/fms)
+
+
 ## Content
 
 - Lectures 1-4 give introduction to proofs and mechanization in Coq based off of [Software Foundations](https://softwarefoundations.cis.upenn.edu/).
