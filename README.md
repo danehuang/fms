@@ -9,6 +9,8 @@ This course would not be possible without these amazing resources.
 
 Lecture notes draw heavily from these resources.
 
+The web verion is here [https://danehuang.github.io/fms/](https://danehuang.github.io/fms/).
+
 
 ## Syllabus
 
