@@ -23,7 +23,7 @@ title: Formal Models and Semantics
 description: >- # this means to ignore newlines until "baseurl:"
   A course on formal models and semantics in Coq.
 baseurl: "/fms" # the subpath of your site, e.g. /blog
-url: "https://danehuang.github.io" # the base hostname & protocol for your site, e.g. http://example.com
+url: "https://danehuang.github.io/fms" # the base hostname & protocol for your site, e.g. http://example.com
 # twitter_username: jekyllrb
 # github_username:  jekyll
 
@@ -35,7 +35,7 @@ theme: minima
 collections:
   pages:
     output: true
-    permalink: pages/:name/
+    permalink: /fms/pages/:name/
 
 # Exclude from processing.
 # The following items will not be processed, by default.
