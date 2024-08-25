@@ -1,5 +1,4 @@
-(* ################################################################# *)
-(** * CSC825: Logic and Computability *)
+(** * Normalizationls *)
 
 From Coq Require Import Lists.List.
 From Coq Require Import Strings.String.
