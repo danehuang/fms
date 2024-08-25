@@ -35,7 +35,8 @@ theme: minima
 collections:
   pages:
     output: true
-    permalink: /fms/pages/:name/
+    # permalink: /fms/pages/:name/
+    permalink: /:collection/:path/
 
 # Exclude from processing.
 # The following items will not be processed, by default.
